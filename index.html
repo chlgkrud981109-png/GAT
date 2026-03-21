@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Versus - Premium Product Comparison</title>
+    <meta name="description" content="한눈에 보는 경쟁사 제품 비교 서비스. 완벽한 구매 결정을 위해 스펙과 가격을 직관적으로 비교하세요.">
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Icons (Lucide via unpkg for lightweight beautiful icons) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="bg-shape bg-shape-1"></div>
+    <div class="bg-shape bg-shape-2"></div>
+
+    <!-- Navigation -->
+    <header class="glass-header">
+        <div class="container header-container">
+            <div class="logo">
+                <i data-lucide="layers" class="logo-icon"></i>
+                <span>Versus</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#" class="active">제품 비교</a>
+                <a href="#">인기 랭킹</a>
+                <a href="#">커뮤니티</a>
+            </nav>
+            <button class="btn btn-primary">로그인</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="gradient-text">완벽한 선택을 위한 한눈에 비교</h1>
+            <p class="subtitle">어떤 제품을 살지 고민중이신가요? 찾고자 하는 제품을 검색하고 경쟁사 모델과 스펙을 한눈에 비교해보세요.</p>
+            
+            <div class="search-container glass-panel">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="searchInput" placeholder="비교할 제품명 또는 카테고리를 입력하세요 (예: 스마트폰, 노트북...)" autocomplete="off">
+                <button class="btn btn-primary" id="searchBtn">검색</button>
+                
+                <!-- Search Results Dropdown -->
+                <div class="search-results hidden" id="searchResults">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            
+            <!-- Quick Categories -->
+            <div class="quick-tags">
+                <button class="tag active" data-category="all">전체</button>
+                <button class="tag" data-category="smartphone">스마트폰</button>
+                <button class="tag" data-category="laptop">노트북</button>
+                <button class="tag" data-category="audio">무선이어폰</button>
+                <button class="tag" data-category="tablet">태블릿</button>
+            </div>
+        </section>
+
+        <!-- Product Selection Area -->
+        <section class="selection-area hidden" id="selectionArea">
+            <div class="section-header">
+                <h2>비교할 제품 선택</h2>
+                <button class="btn btn-icon btn-outline reset-btn" id="resetBtn">
+                    <i data-lucide="rotate-ccw"></i> 다시 선택
+                </button>
+            </div>
+            
+            <div class="product-grid" id="productGrid">
+                <!-- Products to select will be rendered here -->
+            </div>
+        </section>
+
+        <!-- Comparison View (Hidden initially) -->
+        <section class="comparison-view hidden" id="comparisonView">
+            <h2 class="visually-hidden">상세 비교표</h2>
+            
+            <div class="comparison-container glass-panel">
+                <!-- Table Header - Product Cards -->
+                <div class="compare-header" id="compareHeader">
+                    <!-- Base Product -->
+                    <div class="compare-card base-product" id="baseProductCard">
+                        <!-- Populated by JS -->
+                    </div>
+                    
+                    <div class="vs-badge">VS</div>
+                    
+                    <!-- Competitor Products -->
+                    <div class="competitors-wrapper" id="competitorsWrapper">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Detailed Specs Table -->
+                <div class="specs-table-container">
+                    <table class="specs-table" id="specsTable">
+                        <!-- Populated by JS -->
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="glass-footer">
+        <div class="container footer-content">
+            <div class="footer-logo">
+                <i data-lucide="layers"></i>
+                <span>Versus</span>
+            </div>
+            <p class="copyright">&copy; 2026 Versus. All rights reserved. Premium Product Comparison.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
