@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>커뮤니티 - Versus V2</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="bg-shape bg-shape-1"></div>
+    <div class="bg-shape bg-shape-2"></div>
+
+    <!-- Navigation -->
+    <header class="glass-header">
+        <div class="container header-container">
+            <a href="index.html" class="logo">
+                <i data-lucide="layers" class="logo-icon"></i>
+                <span>Versus</span>
+            </a>
+            <nav class="nav-links">
+                <a href="index.html">제품 비교</a>
+                <a href="ranking.html">인기 랭킹</a>
+                <a href="community.html" class="active">커뮤니티</a>
+            </nav>
+            <div class="auth-wrapper" id="authWrapper">
+                <button class="btn btn-primary" onclick="window.location.href='index.html'">메인으로</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Stub -->
+    <main class="container" style="min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+        <i data-lucide="users" style="width: 64px; height: 64px; color: var(--accent-primary); margin-bottom: 1.5rem;"></i>
+        <h1 class="gradient-text" style="font-size: 3rem; margin-bottom: 1rem;">커뮤니티 (준비 중)</h1>
+        <p class="subtitle">제품에 대한 다양한 의견을 나누고 투표할 수 있는 토론 공간이 생겨납니다!</p>
+    </main>
+
+    <footer class="glass-footer">
+        <div class="container footer-content">
+            <div class="footer-logo">
+                <i data-lucide="layers"></i>
+                <span>Versus</span>
+            </div>
+            <p class="copyright">&copy; 2026 Versus. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>

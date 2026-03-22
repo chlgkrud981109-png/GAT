@@ -144,34 +144,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const productGrid = document.getElementById('productGrid');
     const comparisonView = document.getElementById('comparisonView');
     const resetBtn = document.getElementById('resetBtn');
+    
     const tags = document.querySelectorAll('.tag');
+    const categoryCards = document.querySelectorAll('.category-card'); // V2 Cards
     
     // Elements to populate during comparison
     const baseProductCard = document.getElementById('baseProductCard');
     const competitorsWrapper = document.getElementById('competitorsWrapper');
     const specsTable = document.getElementById('specsTable');
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    const authWrapper = document.getElementById('authWrapper');
 
     // --- State ---
     let currentCategory = 'all';
 
+    // --- UI Helpers ---
+    // 공통 이미지 Fallback 처리 (네이버 등에서 이미지가 깨질 때 방어)
+    const onImgError = "this.onerror=null;this.src='https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=400&q=80';";
+
     // --- Event Listeners ---
     
-    // Tag Filtering
+    // Tag Filtering (Legacy & Fallback)
     tags.forEach(tag => {
-        tag.addEventListener('click', (e) => {
-            tags.forEach(t => t.classList.remove('active'));
-            e.target.classList.add('active');
-            currentCategory = e.target.dataset.category;
-            
-            // If selection area is visible, re-render
-            if (!selectionArea.classList.contains('hidden')) {
-                renderSelectionGrid(currentCategory);
-            } else if (comparisonView.classList.contains('hidden')) {
-                // Show selection area automatically if clicking a category and not viewing comparison
-                showSelectionArea(currentCategory);
-            }
+        tag.addEventListener('click', (e) => handleCategorySelection(e.target.dataset.category, e.target));
+    });
+
+    // V2 Category Cards Filtering
+    categoryCards.forEach(card => {
+        card.addEventListener('click', (e) => {
+            const selectedCategory = card.dataset.category;
+            // Scroll past hero
+            selectionArea.scrollIntoView({ behavior: 'smooth' });
+            handleCategorySelection(selectedCategory, null);
         });
     });
+
+    function handleCategorySelection(category, targetElement) {
+        if (targetElement) {
+            tags.forEach(t => t.classList.remove('active'));
+            targetElement.classList.add('active');
+        }
+        currentCategory = category;
+        
+        if (!selectionArea.classList.contains('hidden')) {
+            renderSelectionGrid(currentCategory);
+        } else if (comparisonView.classList.contains('hidden')) {
+            showSelectionArea(currentCategory);
+        }
+    }
 
     // Dummy Search Button logic (simulates clicking input)
     document.getElementById('searchBtn').addEventListener('click', () => {
@@ -298,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         productGrid.innerHTML = filtered.map(product => `
             <div class="product-card-mini" onclick="selectProduct('${product.id}')">
                 <div class="product-image-wrap">
-                    <img src="${product.image}" alt="${product.name}">
+                    <img src="${product.image}" alt="${product.name}" onerror="${onImgError}">
                 </div>
                 <div>
                     <span class="brand">${product.brand}</span>
@@ -323,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 1. Render Headers (Cards) Wait for API
         const renderHeaderSkeleton = (p) => `
-            <img src="${p.image}" alt="${p.name}" class="compare-img">
+            <img src="${p.image}" alt="${p.name}" class="compare-img" onerror="${onImgError}">
             <div class="compare-brand">${p.brand}</div>
             <div class="compare-title">${p.name}</div>
             <div id="price-${p.id}" class="skeleton-text"></div>
@@ -352,15 +372,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if(priceContainer && btnContainer) {
                     priceContainer.className = 'compare-price';
-                    priceContainer.innerHTML = liveData.price;
+                    priceContainer.innerHTML = `
+                        ${liveData.price}
+                        <div class="source-tag"><i data-lucide="check-circle"></i> 네이버 쇼핑 실시간 최저가 기준</div>
+                    `;
                     
                     btnContainer.className = ''; // remove skeleton class
+                    
+                    // Alert 제거, 새 창(window.open)으로 실 주소 연결
                     btnContainer.innerHTML = `
-                        <button class="btn btn-shiny" onclick="alert('상품 상세정보 페이지로 이동합니다!')">
-                            <i data-lucide="info"></i> 최저가 확인하기
+                        <button class="btn btn-shiny" onclick="window.open('${liveData.url}', '_blank')">
+                            <i data-lucide="info"></i> 최저가 링크 방문
                         </button>
                     `;
-                    // Re-init lucide icons for newly added info icons
+                    // Re-init lucide icons for newly added icons
                     lucide.createIcons();
                 }
             } catch (err) {
@@ -470,5 +495,60 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             comparisonView.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
+    }
+
+    // --- Firebase Logic (Auth & DB Event Binding) ---
+    // index.html에서 firebase 객체가 전역으로 선언되어 무사히 로드되었다면 로직을 활성화합니다.
+    if (window.auth) {
+        // Auth State Listener
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // 사용자가 로그인한 상태: 프로필 정보로 버튼 교체 및 로그아웃 기능 추가
+                authWrapper.innerHTML = `
+                    <div class="user-profile">
+                        <img src="${user.photoURL || 'https://via.placeholder.com/150'}" alt="Profile">
+                        <span>${user.displayName}님</span>
+                    </div>
+                `;
+                
+                // Firestore에 최초 접속 시 유저 데이터 병합 (Upsert) - Schema 구현의 일부
+                if (window.db) {
+                    db.collection("users").doc(user.uid).set({
+                        email: user.email,
+                        displayName: user.displayName,
+                        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true }).catch(err => console.error("Firestore user save error:", err));
+                }
+
+            } else {
+                // 로그아웃 상태
+                authWrapper.innerHTML = `
+                    <button class="btn btn-primary" id="googleLoginBtn">
+                        <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> 구글 로그인
+                    </button>
+                `;
+                lucide.createIcons();
+
+                // 로그인 버튼 다시 바인딩
+                document.getElementById('googleLoginBtn').addEventListener('click', () => {
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    auth.signInWithPopup(provider).catch(error => {
+                        console.error('Login Failed', error);
+                        alert('로그인에 실패하였습니다.');
+                    });
+                });
+            }
+        });
+
+        // 초기 구글 로그인 클릭 바인딩
+        if (googleLoginBtn) {
+            googleLoginBtn.addEventListener('click', () => {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider).catch(error => {
+                    console.error('Login Failed', error);
+                    alert('로그인에 실패하였습니다. Firebase 설정 창을 확인해주세요.');
+                });
+            });
+        }
     }
 });

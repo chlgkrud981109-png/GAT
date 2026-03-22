@@ -21,16 +21,20 @@
     <!-- Navigation -->
     <header class="glass-header">
         <div class="container header-container">
-            <div class="logo">
+            <a href="index.html" class="logo">
                 <i data-lucide="layers" class="logo-icon"></i>
                 <span>Versus</span>
-            </div>
+            </a>
             <nav class="nav-links">
-                <a href="#" class="active">제품 비교</a>
-                <a href="#">인기 랭킹</a>
-                <a href="#">커뮤니티</a>
+                <a href="index.html" class="active">제품 비교</a>
+                <a href="ranking.html">인기 랭킹</a>
+                <a href="community.html">커뮤니티</a>
             </nav>
-            <button class="btn btn-primary">로그인</button>
+            <div class="auth-wrapper" id="authWrapper">
+                <button class="btn btn-primary" id="googleLoginBtn">
+                    <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> 구글 로그인
+                </button>
+            </div>
         </div>
     </header>
 
@@ -52,8 +56,27 @@
                 </div>
             </div>
             
-            <!-- Quick Categories -->
-            <div class="quick-tags">
+            <!-- Large V2 Category Cards -->
+            <div class="category-cards-container">
+                <div class="category-card" data-category="smartphone">
+                    <div class="card-icon-wrap"><i data-lucide="smartphone"></i></div>
+                    <h3>전자기기 / IT</h3>
+                    <p>스마트폰, 태블릿, 워치</p>
+                </div>
+                <div class="category-card" data-category="laptop">
+                    <div class="card-icon-wrap"><i data-lucide="laptop"></i></div>
+                    <h3>컴퓨터 / 노트북</h3>
+                    <p>업무용, 게이밍, 조립PC</p>
+                </div>
+                <div class="category-card" data-category="audio">
+                    <div class="card-icon-wrap"><i data-lucide="headphones"></i></div>
+                    <h3>음향 가전</h3>
+                    <p>이어폰, 헤드폰, 스피커</p>
+                </div>
+            </div>
+            
+            <!-- Quick Tags (Hidden for cleaner large card UI, kept for fallback) -->
+            <div class="quick-tags hidden">
                 <button class="tag active" data-category="all">전체</button>
                 <button class="tag" data-category="smartphone">스마트폰</button>
                 <button class="tag" data-category="laptop">노트북</button>
@@ -117,9 +140,32 @@
     </footer>
 
     <script src="app.js"></script>
+    
+    <!-- Firebase Compat Modules (Vanilla HTML 친화적) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
+        
+        // ----------------------------------------------------
+        // [FIREBASE 구글 로그인 및 DB 설정 블록]
+        // 차후 이곳에 발급된 firebaseConfig를 덮어씌우면 DB 연동이 활성화됩니다.
+        // ----------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID"
+        };
+        
+        // 로컬 테스트 중 에러를 방지하기 위해 Config 값이 YOUR_... 일 경우 초기화를 생략합니다.
+        if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+            firebase.initializeApp(firebaseConfig);
+            window.db = firebase.firestore();
+            window.auth = firebase.auth();
+        }
     </script>
 </body>
 </html>
