@@ -418,9 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
         comparisonView.classList.remove('hidden');
 
         if (!baseProduct) return;
-
-        // Get Competitors
-        const competitors = baseProduct.competitors.map(id => productsDB.find(p => p.id === id)).filter(Boolean);
         
         // 1. Render Headers (Cards) Wait for API
         const renderHeaderSkeleton = (p) => `
