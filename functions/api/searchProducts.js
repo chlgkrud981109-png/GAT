@@ -21,7 +21,11 @@ export async function onRequest(context) {
     const clientSecret = env.NAVER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-      return new Response(JSON.stringify({ error: "네이버 API 키가 서버 환경 변수에 없습니다." }), {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "네이버 API 키 누락", 
+        details: "Cloudflare 환경 변수 설정에 NAVER_CLIENT_ID 혹은 NAVER_CLIENT_SECRET 값이 비어있습니다." 
+      }), {
         status: 500,
         headers: { "Content-Type": "application/json" }
       });
@@ -36,7 +40,16 @@ export async function onRequest(context) {
     });
 
     if (!response.ok) {
-      throw new Error(`Naver API 가 에러 코드를 반환했습니다: ${response.status}`);
+      const errorText = await response.text();
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Naver API HTTP 에러: ${response.status}`,
+        details: errorText,
+        urlLoaded: NAVER_API_URL
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     const data = await response.json();
@@ -61,7 +74,12 @@ export async function onRequest(context) {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: "서버 처리 중 에러가 발생했습니다.", details: error.message }), {
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: "Cloudflare 워커 내부 처리 불가", 
+      details: error.message,
+      stack: error.stack
+    }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
     });
