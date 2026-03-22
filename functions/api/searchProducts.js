@@ -7,7 +7,11 @@ export async function onRequest(context) {
   const display = url.searchParams.get("display") || "10"; // 기본 10개 반환
 
   if (!keyword) {
-    return new Response(JSON.stringify({ error: "keyword 파라미터가 필요합니다." }), {
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: "keyword 파라미터 누락",
+      details: "요청 URL에 '?keyword=아이폰' 형태로 검색어가 전달되지 않았습니다." 
+    }), {
       status: 400,
       headers: { "Content-Type": "application/json" }
     });
@@ -20,11 +24,22 @@ export async function onRequest(context) {
     const clientId = env.NAVER_CLIENT_ID;
     const clientSecret = env.NAVER_CLIENT_SECRET;
 
-    if (!clientId || !clientSecret) {
+    if (!clientId) {
       return new Response(JSON.stringify({ 
         success: false,
-        error: "네이버 API 키 누락", 
-        details: "Cloudflare 환경 변수 설정에 NAVER_CLIENT_ID 혹은 NAVER_CLIENT_SECRET 값이 비어있습니다." 
+        error: "Naver Client ID is missing", 
+        details: "Cloudflare 환경 변수에 'NAVER_CLIENT_ID' 값을 찾을 수 없습니다. 대시보드의 Environment variables 설정을 확인하세요." 
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    if (!clientSecret) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "Naver Client Secret is missing", 
+        details: "Cloudflare 환경 변수에 'NAVER_CLIENT_SECRET' 값을 찾을 수 없습니다. 대시보드의 Environment variables 설정을 확인하세요." 
       }), {
         status: 500,
         headers: { "Content-Type": "application/json" }
