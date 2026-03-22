@@ -362,6 +362,28 @@ document.addEventListener('DOMContentLoaded', () => {
         selectionArea.classList.add('hidden');
         comparisonView.classList.remove('hidden');
 
+        // 스펙 동적 추출기 (상품명 분석)
+        const parseSpecs = (name, mallName) => {
+            const specs = { '쇼핑몰': mallName, '상태': '새상품' };
+            const lowerName = name.toLowerCase();
+            
+            if (lowerName.includes('apple') || lowerName.includes('아이폰') || lowerName.includes('맥북') || lowerName.includes('에어팟')) specs['브랜드/제조사'] = 'Apple';
+            else if (lowerName.includes('삼성') || lowerName.includes('갤럭시')) specs['브랜드/제조사'] = '삼성전자';
+            else if (lowerName.includes('lg') || lowerName.includes('그램') || lowerName.includes('스탠바이미')) specs['브랜드/제조사'] = 'LG전자';
+            else specs['브랜드/제조사'] = '기타/미상';
+            
+            const ramMatch = name.match(/(\d{1,2}GB?)\s*(ram|메모리)?/i);
+            if (ramMatch && !lowerName.includes('ssd')) specs['메모리 (RAM)'] = ramMatch[1].toUpperCase();
+            
+            const storageMatch = name.match(/(\d{3}GB|1TB|2TB)/i);
+            if (storageMatch) specs['저장용량'] = storageMatch[1].toUpperCase();
+            
+            if (lowerName.includes('5g')) specs['네트워크'] = '5G 지원';
+            else if (lowerName.includes('근거리') || lowerName.includes('블루투스')) specs['네트워크'] = '연동 특화';
+            
+            return specs;
+        };
+
         // 경쟁 모델 동적 생성 (같은 검색 결과 목록에서 다른 상품 2~3개 추출)
         const competitorItems = dynamicProducts.filter(p => p.uid !== uid).slice(0, 3);
         
@@ -373,9 +395,10 @@ document.addEventListener('DOMContentLoaded', () => {
             image: product.image,
             price: product.priceFormatted,
             priceVal: product.lprice,
-            specs: { rank: '1위 (해당 검색내)', mall: product.brand, condition: '새상품' }, // 가상 스펙
-            pros: ['검색하신 조건에 가장 부합하는 제품', '선호도가 높음', '확인된 실시간 최저가'],
-            cons: ['배송일에 따른 변동 가능성', '재고 소진 유의']
+            url: product.link, // 기준 상품도 URL 전달
+            specs: parseSpecs(product.name, product.brand),
+            pros: ['검색 조건에 완벽히 일치하는 메인 제품', '검증된 실시간 최저가 제공', '다결과 대비 높은 연관도'],
+            cons: ['실시간 재고 변동 가능성', '배송비 별도 청구 홗인 요망']
         };
 
         const competitorObjs = competitorItems.map(c => ({
@@ -385,7 +408,10 @@ document.addEventListener('DOMContentLoaded', () => {
             image: c.image,
             price: c.priceFormatted,
             priceVal: c.lprice,
-            url: c.link
+            url: c.link,
+            specs: parseSpecs(c.name, c.brand),
+            pros: ['동급 대비 합리적인 대안', '동일 카테고리의 베스트셀러 후보'],
+            cons: ['브랜드 선호도에 따른 호불호', '일부 스펙의 미세한 차이']
         }));
 
         renderComparison(baseProductObj, competitorObjs, product.link);
@@ -443,14 +469,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `).join('');
 
-        // Fetch prices asynchronously and update the UI
+        // Fetch prices asynchronously (Fake delay via JS for skeleton effect since data is already live)
         const allProductsToFetch = [baseProduct, ...competitors];
         
-        allProductsToFetch.forEach(async (p) => {
-            try {
-                // Fetch live price
-                const liveData = await fetchRealTimePrice(p.id);
-                
+        allProductsToFetch.forEach((p) => {
+            setTimeout(() => {
                 // Update specific product's price and render the Buy button
                 const priceContainer = document.getElementById(`price-${p.id}`);
                 const btnContainer = document.getElementById(`btn-${p.id}`);
@@ -458,24 +481,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(priceContainer && btnContainer) {
                     priceContainer.className = 'compare-price';
                     priceContainer.innerHTML = `
-                        ${liveData.price}
+                        ${p.price}
                         <div class="source-tag"><i data-lucide="check-circle"></i> 네이버 쇼핑 실시간 최저가 기준</div>
                     `;
                     
                     btnContainer.className = ''; // remove skeleton class
                     
-                    // Alert 제거, 새 창(window.open)으로 실 주소 연결
+                    // Alert 제거, 새 창(window.open)으로 진짜 최저가 판매 주소 연결!
                     btnContainer.innerHTML = `
-                        <button class="btn btn-shiny" onclick="window.open('${liveData.url}', '_blank')">
-                            <i data-lucide="info"></i> 최저가 링크 방문
+                        <button class="btn btn-shiny" onclick="window.open('${p.url}', '_blank')">
+                            <i data-lucide="info"></i> 실시간 최저가 방문
                         </button>
                     `;
                     // Re-init lucide icons for newly added icons
                     lucide.createIcons();
                 }
-            } catch (err) {
-                console.error('Failed to fetch real-time price', err);
-            }
+            }, 800 + (Math.random() * 500)); // 0.8s ~ 1.3s delay
         });
 
         // 2. Render Details Table
@@ -637,6 +658,47 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('로그인에 실패하였습니다. 콘솔과 네트워크 상태를 확인해주세요.');
                 });
             });
+        }
+        
+        // 메인 페이지 인기 검색어 로드
+        fetchTopSearchesForMain();
+    }
+
+    async function fetchTopSearchesForMain() {
+        if (!window.db) return;
+        const container = document.getElementById('mainTrendingSearches');
+        if (!container) return;
+        
+        try {
+            const snapshot = await db.collection("search_history")
+                .orderBy("timestamp", "desc")
+                .limit(100)
+                .get();
+                
+            const counts = {};
+            snapshot.forEach(doc => {
+                const kw = (doc.data().keyword || "").toLowerCase();
+                if (kw) counts[kw] = (counts[kw] || 0) + 1;
+            });
+            
+            const top5 = Object.entries(counts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+                
+            if (top5.length === 0) {
+                container.innerHTML = '<span style="font-size:0.85rem; color:var(--text-secondary);">데이터 수집 중</span>';
+                return;
+            }
+            
+            container.innerHTML = top5.map((item, idx) => `
+                <button class="tag" style="padding: 0.2rem 0.8rem; font-size: 0.85rem; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm);" onclick="document.getElementById('searchInput').value='${item[0]}'; document.getElementById('searchBtn').click();">
+                    <strong style="color:var(--accent-primary); margin-right:4px;">${idx+1}</strong> ${item[0]}
+                </button>
+            `).join('');
+            
+        } catch (e) {
+            console.error("메인 트렌딩 검색어 로드 실패:", e);
+            container.innerHTML = '';
         }
     }
 

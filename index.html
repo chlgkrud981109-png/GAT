@@ -75,6 +75,14 @@
                 </div>
             </div>
             
+            <!-- 실시간 인기 검색어 (Ranking) -->
+            <div class="trending-searches-container" style="margin-top: 2rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; align-items: center;">
+                 <span style="color: var(--text-secondary); font-size: 0.9rem; margin-right: 0.5rem;"><i data-lucide="trending-up" style="width:14px; height:14px; margin-right:4px;"></i>실시간 인기 검색:</span>
+                 <div id="mainTrendingSearches" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                     <span style="font-size:0.85rem; color:var(--text-secondary);"><i data-lucide="loader-2" class="spin" style="width:12px; height:12px;"></i> 집계중...</span>
+                 </div>
+            </div>
+            
             <!-- Quick Tags (Hidden for cleaner large card UI, kept for fallback) -->
             <div class="quick-tags hidden">
                 <button class="tag active" data-category="all">전체</button>
