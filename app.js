@@ -1,4 +1,4 @@
-// --- Mock Database ---
+// --- Fake Database for Legacy Fallbacks ---
 const productsDB = [
     {
         id: 'iphone15pro',
@@ -134,6 +134,9 @@ const productsDB = [
     }
 ];
 
+// --- Dynamic State ---
+let dynamicProducts = []; // 네이버에서 실시간으로 긁어온 상품 목록 저장용
+
 // --- Application Logic ---
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -186,60 +189,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         currentCategory = category;
         
-        if (!selectionArea.classList.contains('hidden')) {
-            renderSelectionGrid(currentCategory);
-        } else if (comparisonView.classList.contains('hidden')) {
-            showSelectionArea(currentCategory);
-        }
+        // 카테고리 클릭 시 실시간 네이버 API 기반 자동 검색 수행
+        const categoryQueries = {
+            'smartphone': '최신 스마트폰',
+            'laptop': '인기 노트북',
+            'audio': '무선 이어폰',
+            'all': '인기 전자기기'
+        };
+        
+        const query = categoryQueries[category] || category;
+        
+        // 비교 화면이 열려있다면 닫고 그리드로 뷰포트 이동
+        comparisonView.classList.add('hidden');
+        selectionArea.classList.remove('hidden');
+        
+        searchDynamicProducts(query);
     }
 
-    // Dummy Search Button logic (simulates clicking input)
-    document.getElementById('searchBtn').addEventListener('click', () => {
-        showSelectionArea(currentCategory);
-    });
-
-    // Search Input Dropdown matching
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-        if (query.length === 0) {
-            searchResults.classList.add('hidden');
-            return;
-        }
-
-        const matches = productsDB.filter(p => 
-            p.name.toLowerCase().includes(query) || 
-            p.brand.toLowerCase().includes(query) ||
-            p.category.toLowerCase().includes(query)
-        );
-
-        if (matches.length > 0) {
-            searchResults.innerHTML = matches.map(p => `
-                <div class="search-result-item" onclick="selectProduct('${p.id}')">
-                    <img src="${p.image}" alt="${p.name}">
-                    <div class="search-result-info">
-                        <h4>${p.name}</h4>
-                        <p>${p.brand} · ${p.category}</p>
-                    </div>
-                </div>
-            `).join('');
-            searchResults.classList.remove('hidden');
-        } else {
-            searchResults.innerHTML = '<div style="padding: 1rem; color: var(--text-muted);">검색 결과가 없습니다.</div>';
-            searchResults.classList.remove('hidden');
-        }
-    });
-
-    // Hide dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.search-container')) {
-            searchResults.classList.add('hidden');
-        }
-    });
-
-    // Reset Button
+    // Reset Button (비교 초기화 및 선택창 복귀)
     resetBtn.addEventListener('click', () => {
         hideComparison();
-        showSelectionArea(currentCategory);
+        selectionArea.classList.remove('hidden');
+        selectionArea.scrollIntoView({ behavior: 'smooth' });
         searchInput.value = '';
     });
 
@@ -286,56 +257,166 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Expose selectProduct to window for inline onclick handlers
-    window.selectProduct = function(productId) {
-        searchResults.classList.add('hidden');
-        searchInput.value = '';
-        renderComparison(productId);
-    };
+    // --- Initial Load (Popular Tech) ---
+    async function loadInitialDynamicData() {
+        productGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--text-secondary);">
+                <i data-lucide="loader-2" class="spin" style="width: 32px; height: 32px; margin-bottom: 1rem; color: var(--accent-primary);"></i>
+                <p>실시간 인기 상품을 불러오는 중입니다...</p>
+            </div>
+        `;
+        lucide.createIcons();
 
-    function showSelectionArea(category) {
-        comparisonView.classList.add('hidden');
-        selectionArea.classList.remove('hidden');
-        renderSelectionGrid(category);
-        selectionArea.scrollIntoView({ behavior: 'smooth' });
+        try {
+            // Promise.all로 3개의 인기 키워드 동시 검색
+            const queries = ['아이폰 16', '갤럭시 S24', 'M3 맥북 에어', '에어팟 프로'];
+            const fetchPromises = queries.map(q => fetch(`/api/searchProducts?keyword=${encodeURIComponent(q)}&display=4`).then(r => r.json()));
+            
+            const results = await Promise.all(fetchPromises);
+            dynamicProducts = [];
+            
+            results.forEach(res => {
+                if (res.success && res.items) {
+                    dynamicProducts.push(...res.items);
+                }
+            });
+
+            // 임시 ID (중복 방지용) 부여
+            dynamicProducts.forEach((p, index) => { p.uid = `dyn_${index}`; });
+            renderDynamicGrid(dynamicProducts);
+        } catch (error) {
+            console.error("초기 실시간 상품 로드 실패:", error);
+            productGrid.innerHTML = `<p style="text-align:center;width:100%;">로컬 테스트 환경이거나 API를 불러올 수 없습니다.</p>`;
+        }
     }
+
+    // --- Search Action ---
+    async function searchDynamicProducts(query) {
+        if (!query.trim()) return;
+
+        // Firestore DB에 검색기록 로깅 기능 (popular searches 구축용)
+        if (window.db) {
+            try {
+                // 사용자가 로그인했다면 userId 함께 저장, 아니면 익명
+                const userId = (window.auth && window.auth.currentUser) ? window.auth.currentUser.uid : 'anonymous';
+                db.collection("search_history").add({
+                    keyword: query.trim(),
+                    userId: userId,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                }).catch(err => console.warn("Search log omitted:", err));
+            } catch (e) { console.warn("Firestore logging skipped"); }
+        }
+
+        selectionArea.scrollIntoView({ behavior: 'smooth' });
+        productGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--text-secondary);">
+                <i data-lucide="search" class="spin" style="width: 32px; height: 32px; margin-bottom: 1rem; color: var(--accent-primary);"></i>
+                <p>'${query}' 검색 중입니다...</p>
+            </div>
+        `;
+        lucide.createIcons();
+
+        try {
+            const res = await fetch(`/api/searchProducts?keyword=${encodeURIComponent(query)}&display=16`);
+            const data = await res.json();
+            
+            if (data.success && data.items.length > 0) {
+                dynamicProducts = data.items;
+                dynamicProducts.forEach((p, index) => { p.uid = `dyn_search_${index}`; });
+                renderDynamicGrid(dynamicProducts);
+            } else {
+                productGrid.innerHTML = `<p style="text-align:center;width:100%; color:var(--text-secondary);">검색 결과가 없습니다.</p>`;
+            }
+        } catch (error) {
+            console.error("검색 실패:", error);
+            productGrid.innerHTML = `<p style="text-align:center;width:100%; color:var(--error);">검색 중 오류가 발생했습니다.</p>`;
+        }
+    }
+
+    // Search Execution Listeners
+    document.getElementById('searchBtn').addEventListener('click', () => {
+        searchDynamicProducts(searchInput.value);
+    });
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            searchDynamicProducts(searchInput.value);
+        }
+    });
+
+    // Run Initial Load
+    loadInitialDynamicData();
+
+    // --- Core Logic ---
+    window.selectProduct = async function(uid) {
+        const product = dynamicProducts.find(p => p.uid === uid);
+        if(!product) return;
+
+        // Hide selection, show comparison
+        selectionArea.classList.add('hidden');
+        comparisonView.classList.remove('hidden');
+
+        // 경쟁 모델 동적 생성 (같은 검색 결과 목록에서 다른 상품 2~3개 추출)
+        const competitorItems = dynamicProducts.filter(p => p.uid !== uid).slice(0, 3);
+        
+        // Transform base product to required format
+        const baseProductObj = {
+            id: product.uid,
+            name: product.name,
+            brand: product.brand,
+            image: product.image,
+            price: product.priceFormatted,
+            priceVal: product.lprice,
+            specs: { rank: '1위 (해당 검색내)', mall: product.brand, condition: '새상품' }, // 가상 스펙
+            pros: ['검색하신 조건에 가장 부합하는 제품', '선호도가 높음', '확인된 실시간 최저가'],
+            cons: ['배송일에 따른 변동 가능성', '재고 소진 유의']
+        };
+
+        const competitorObjs = competitorItems.map(c => ({
+            id: c.uid,
+            name: c.name,
+            brand: c.brand,
+            image: c.image,
+            price: c.priceFormatted,
+            priceVal: c.lprice,
+            url: c.link
+        }));
+
+        renderComparison(baseProductObj, competitorObjs, product.link);
+    };
 
     function hideComparison() {
         comparisonView.classList.add('hidden');
     }
 
-    function renderSelectionGrid(category) {
-        let filtered = productsDB;
-        if (category !== 'all') {
-            filtered = productsDB.filter(p => p.category === category);
-        }
-
-        if (filtered.length === 0) {
-            productGrid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1/-1;">해당 카테고리의 제품이 아직 준비되지 않았습니다.</p>';
+    function renderDynamicGrid(productsList) {
+        if (!productsList || productsList.length === 0) {
+            productGrid.innerHTML = '<p style="text-align:center; grid-column:1/-1;">상품이 존재하지 않습니다.</p>';
             return;
         }
 
-        productGrid.innerHTML = filtered.map(product => `
-            <div class="product-card-mini" onclick="selectProduct('${product.id}')">
+        productGrid.innerHTML = productsList.map(product => `
+            <div class="product-card-mini" onclick="selectProduct('${product.uid}')">
                 <div class="product-image-wrap">
                     <img src="${product.image}" alt="${product.name}" onerror="${onImgError}">
                 </div>
-                <div>
-                    <span class="brand">${product.brand}</span>
-                    <h3>${product.name}</h3>
+                <div style="flex: 1; display:flex; flex-direction:column; gap:0.3rem;">
+                    <span class="brand" style="font-size:0.75rem;">${product.brand}</span>
+                    <h3 style="font-size:0.9rem; line-height:1.2; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${product.name}</h3>
                 </div>
-                <div style="margin-top: auto; font-weight: 600; color: var(--accent-primary);">
-                    ${product.price}
+                <div style="margin-top: auto; font-weight: 700; color: var(--accent-primary); font-size:1.1rem;">
+                    ${product.priceFormatted}
                 </div>
             </div>
         `).join('');
     }
 
-    function renderComparison(baseProductId) {
+    // (Reset Button listeners are handled above)
+
+    // Render Full Comparison View
+    function renderComparison(baseProduct, competitors, baseUrl) {
         selectionArea.classList.add('hidden');
         comparisonView.classList.remove('hidden');
 
-        const baseProduct = productsDB.find(p => p.id === baseProductId);
         if (!baseProduct) return;
 
         // Get Competitors
