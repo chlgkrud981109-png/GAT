@@ -325,11 +325,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 dynamicProducts.forEach((p, index) => { p.uid = `dyn_search_${index}`; });
                 renderDynamicGrid(dynamicProducts);
             } else {
-                productGrid.innerHTML = `<p style="text-align:center;width:100%; color:var(--text-secondary);">검색 결과가 없습니다.</p>`;
+                if (!data.success) {
+                    console.error("===== 네이버 API 로드 실패 (Search) =====");
+                    console.error("Error:", data.error);
+                    console.error("Details:", data.details);
+                    productGrid.innerHTML = `<p style="text-align:center;width:100%; color:var(--error);">서버 통신 실패: 콘솔(F12)을 확인하세요.</p>`;
+                } else {
+                    productGrid.innerHTML = `<p style="text-align:center;width:100%; color:var(--text-secondary);">검색 결과가 없습니다.</p>`;
+                }
             }
         } catch (error) {
-            console.error("검색 실패:", error);
-            productGrid.innerHTML = `<p style="text-align:center;width:100%; color:var(--error);">검색 중 오류가 발생했습니다.</p>`;
+            console.error("검색 치명적 실패:", error);
+            productGrid.innerHTML = `<p style="text-align:center;width:100%; color:var(--error);">검색 중 치명적인 오류가 발생했습니다. 콘솔을 확인하세요.</p>`;
         }
     }
 
