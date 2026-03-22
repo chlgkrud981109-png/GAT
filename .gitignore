@@ -1,0 +1,16 @@
+# Environment variables
+.env
+functions/.env
+.env.local
+
+# Node modules
+node_modules/
+npm-debug.log
+
+# Mac OS
+.DS_Store
+
+# Cloudflare Pages / Wrangler
+.wrangler/
+dist/
+.output/

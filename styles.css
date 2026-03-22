@@ -746,6 +746,86 @@ a {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Skeleton Loading Animation */
+@keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+
+.skeleton-text {
+    height: 1.5rem;
+    width: 60%;
+    background: #27272a;
+    background-image: linear-gradient(90deg, #27272a 0px, #3f3f46 40px, #27272a 80px);
+    background-size: 800px 100%;
+    animation: shimmer 2s infinite linear;
+    border-radius: var(--radius-sm);
+    margin: 0.5rem auto;
+}
+
+.skeleton-btn {
+    height: 2.5rem;
+    width: 80%;
+    background: #27272a;
+    background-image: linear-gradient(90deg, #27272a 0px, #3f3f46 40px, #27272a 80px);
+    background-size: 800px 100%;
+    animation: shimmer 2s infinite linear;
+    border-radius: var(--radius-full);
+    margin-top: 0.5rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Lowest Price Shiny Button */
+.btn-shiny {
+    position: relative;
+    overflow: hidden;
+    background: var(--gradient-primary);
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-full);
+    transition: all var(--transition-bounce);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    width: 80%;
+    font-size: 0.95rem;
+}
+
+.btn-shiny::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-20deg);
+    animation: shiny 3s infinite;
+}
+
+.btn-shiny:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.6);
+}
+
+.btn-shiny .price-label {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+@keyframes shiny {
+    0% { left: -100%; }
+    20% { left: 200%; }
+    100% { left: 200%; }
+}
+
 /* Responsive Variables */
 @media (max-width: 992px) {
     .vs-badge { display: none; }

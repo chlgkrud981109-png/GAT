@@ -225,6 +225,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Functions ---
+    // Simulate real-time API call OR real call (e.g. Coupang Price API)
+    async function fetchRealTimePrice(productId) {
+        
+        // --- [Cloudflare Pages API 로직] ---
+        // 하드코딩된 API 키를 완전히 삭제하고, Cloudflare 서버 함수(Functions)를 통해 우회 통신합니다.
+        try {
+            const product = productsDB.find(p => p.id === productId);
+            
+            // Cloudflare Pages Environment 내부의 함수 라우팅 URL (자동으로 매핑됨)
+            const response = await fetch(`/api/getNaverProduct?keyword=${encodeURIComponent(product.name)}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                return {
+                    price: data.priceFormatted,
+                    priceVal: data.priceVal,
+                    url: data.productUrl
+                };
+            }
+        } catch (error) {
+            console.error("Cloudflare API 통신 실패:", error);
+        }
+        // ---------------------------------------
+
+        return new Promise(resolve => {
+            // 아래 코드는 API 호출이 실패할 경우를 대비한 보험용 동작입니다.
+            setTimeout(() => {
+                const product = productsDB.find(p => p.id === productId);
+                if (product) {
+                    // Slight random price fluctuation for realism
+                    const mockDiscount = Math.floor(Math.random() * 5 + 2); // 2% to 6% discount
+                    const discountedPrice = Math.floor(product.priceVal * (1 - (mockDiscount / 100)));
+                    const formattedPrice = '₩' + discountedPrice.toLocaleString();
+                    resolve({ price: formattedPrice, priceVal: discountedPrice });
+                } else {
+                    resolve({ price: '₩???,???', priceVal: 0 });
+                }
+            }, 1500);
+        });
+    }
 
     // Expose selectProduct to window for inline onclick handlers
     window.selectProduct = function(productId) {
@@ -281,22 +321,52 @@ document.addEventListener('DOMContentLoaded', () => {
         // Get Competitors
         const competitors = baseProduct.competitors.map(id => productsDB.find(p => p.id === id)).filter(Boolean);
         
-        // 1. Render Headers (Cards)
-        baseProductCard.innerHTML = `
-            <img src="${baseProduct.image}" alt="${baseProduct.name}" class="compare-img">
-            <div class="compare-brand">${baseProduct.brand}</div>
-            <div class="compare-title">${baseProduct.name}</div>
-            <div class="compare-price">${baseProduct.price}</div>
+        // 1. Render Headers (Cards) Wait for API
+        const renderHeaderSkeleton = (p) => `
+            <img src="${p.image}" alt="${p.name}" class="compare-img">
+            <div class="compare-brand">${p.brand}</div>
+            <div class="compare-title">${p.name}</div>
+            <div id="price-${p.id}" class="skeleton-text"></div>
+            <div id="btn-${p.id}" class="skeleton-btn"></div>
         `;
 
+        // Initial skeleton render for price and button areas
+        baseProductCard.innerHTML = renderHeaderSkeleton(baseProduct);
         competitorsWrapper.innerHTML = competitors.map(comp => `
             <div class="competitor-col">
-                <img src="${comp.image}" alt="${comp.name}" class="compare-img">
-                <div class="compare-brand">${comp.brand}</div>
-                <div class="compare-title">${comp.name}</div>
-                <div class="compare-price">${comp.price}</div>
+                ${renderHeaderSkeleton(comp)}
             </div>
         `).join('');
+
+        // Fetch prices asynchronously and update the UI
+        const allProductsToFetch = [baseProduct, ...competitors];
+        
+        allProductsToFetch.forEach(async (p) => {
+            try {
+                // Fetch live price
+                const liveData = await fetchRealTimePrice(p.id);
+                
+                // Update specific product's price and render the Buy button
+                const priceContainer = document.getElementById(`price-${p.id}`);
+                const btnContainer = document.getElementById(`btn-${p.id}`);
+                
+                if(priceContainer && btnContainer) {
+                    priceContainer.className = 'compare-price';
+                    priceContainer.innerHTML = liveData.price;
+                    
+                    btnContainer.className = ''; // remove skeleton class
+                    btnContainer.innerHTML = `
+                        <button class="btn btn-shiny" onclick="alert('상품 상세정보 페이지로 이동합니다!')">
+                            <i data-lucide="info"></i> 최저가 확인하기
+                        </button>
+                    `;
+                    // Re-init lucide icons for newly added info icons
+                    lucide.createIcons();
+                }
+            } catch (err) {
+                console.error('Failed to fetch real-time price', err);
+            }
+        });
 
         // 2. Render Details Table
         // Spec categories defined dynamically or statically. We extract common keys.

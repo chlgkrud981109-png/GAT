@@ -1,0 +1,14 @@
+{
+  "name": "versus-functions",
+  "description": "Firebase Cloud Functions for Versus Comparison App",
+  "dependencies": {
+    "firebase-admin": "^11.11.0",
+    "firebase-functions": "^4.5.0",
+    "axios": "^1.6.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js"
+}
