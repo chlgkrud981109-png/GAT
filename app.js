@@ -498,8 +498,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Firebase Logic (Auth & DB Event Binding) ---
-    // index.html에서 firebase 객체가 전역으로 선언되어 무사히 로드되었다면 로직을 활성화합니다.
-    if (window.auth) {
+    // index.html에서 보안 통신으로 firebase 객체가 성공적으로 초기화된 후 실행됩니다.
+    function setupFirebaseLogic() {
+        if (!window.auth) return;
+
         // Auth State Listener
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -541,14 +543,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 초기 구글 로그인 클릭 바인딩
-        if (googleLoginBtn) {
-            googleLoginBtn.addEventListener('click', () => {
+        const initialLoginBtn = document.getElementById('googleLoginBtn');
+        if (initialLoginBtn) {
+            initialLoginBtn.addEventListener('click', () => {
                 const provider = new firebase.auth.GoogleAuthProvider();
                 auth.signInWithPopup(provider).catch(error => {
                     console.error('Login Failed', error);
-                    alert('로그인에 실패하였습니다. Firebase 설정 창을 확인해주세요.');
+                    alert('로그인에 실패하였습니다. 콘솔과 네트워크 상태를 확인해주세요.');
                 });
             });
         }
+    }
+
+    // firebaseReady 이벤트를 기다리거나, 이미 로드되었으면 즉시 실행
+    if (window.auth) {
+        setupFirebaseLogic();
+    } else {
+        window.addEventListener('firebaseReady', setupFirebaseLogic);
     }
 });
