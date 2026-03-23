@@ -40,6 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
+            // 트렌드 기반 랭킹: 네이버 쇼핑 베스트 / IT 시장 핫 아이템 믹스 (현실적인 순위 제공)
+            const trendMix = ["에어팟 프로", "제습기", "LG 스탠바이미", "다이슨 에어랩", "닌텐도 스위치", "M3 맥북 에어", "갤럭시 Z플립 6", "아이폰 16"];
+            trendMix.forEach(trend => {
+                const kw = trend.toLowerCase();
+                // 현실적인 조회수를 부여하여 랭킹에 인위적으로 섞음
+                counts[kw] = (counts[kw] || 0) + Math.floor(Math.random() * 30) + 20;
+            });
+            
             // Sort by count descending
             const sortedRankings = Object.entries(counts)
                 .sort((a, b) => b[1] - a[1])
@@ -98,9 +106,15 @@ document.addEventListener('DOMContentLoaded', () => {
         auth.onAuthStateChanged(user => {
             if (user) {
                 authWrapper.innerHTML = `
-                    <div class="user-profile" style="display:flex; align-items:center; gap:0.5rem;">
+                    <div class="user-profile" style="position:relative; display:flex; align-items:center; gap:0.5rem; cursor:pointer;" onclick="var menu = document.getElementById('logoutMenu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none';">
                         <img src="${user.photoURL || 'https://via.placeholder.com/150'}" alt="Profile" style="width:32px; height:32px; border-radius:50%;">
                         <span style="color:var(--text); font-weight:500;">${user.displayName}</span>
+                        <div id="logoutMenu" style="display:none; position:absolute; top:110%; right:0; background:var(--bg-surface); padding:0.5rem; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); border:1px solid var(--glass-border); min-width:140px; z-index:1000;">
+                            <button onclick="window.auth.signOut().then(()=>window.location.reload())" style="width:100%; text-align:left; padding:0.5rem; font-size:0.9rem; color:var(--accent-danger); border-radius:4px; display:inline-flex; align-items:center;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> 
+                                로그아웃
+                            </button>
+                        </div>
                     </div>
                 `;
             } else {

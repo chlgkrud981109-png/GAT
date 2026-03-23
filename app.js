@@ -190,14 +190,23 @@ document.addEventListener('DOMContentLoaded', () => {
         currentCategory = category;
         
         // 카테고리 클릭 시 실시간 네이버 API 기반 자동 검색 수행
-        const categoryQueries = {
-            'smartphone': '최신 스마트폰',
-            'laptop': '인기 노트북',
-            'audio': '무선 이어폰',
-            'all': '인기 전자기기'
+        const categoryKeywords = {
+            'smartphone': ['아이폰', '갤럭시', '스마트폰', 'Z플립', '아이패드'],
+            'laptop': ['맥북', '그램', '노트북', '게이밍 노트북', '레노버'],
+            'audio': ['에어팟', '버즈', '소니 헤드폰', '마샬 스피커'],
+            'kitchen': ['네스프레소', '발뮤다', '에어프라이어', '식기세척기'],
+            'home': ['로봇청소기', '다이슨', '건조기', '공기청정기'],
+            'fashion': ['나이키 스니커즈', '뉴발란스', '우영미', '아디다스 삼바'],
+            'all': ['인기 전자기기', '최신 스마트폰', '인기 노트북', '무선 이어폰']
         };
         
-        const query = categoryQueries[category] || category;
+        let query;
+        if (categoryKeywords[category]) {
+            const keywords = categoryKeywords[category];
+            query = keywords[Math.floor(Math.random() * keywords.length)]; // Pick a random keyword
+        } else {
+            query = category;
+        }
         
         // 비교 화면이 열려있다면 닫고 그리드로 뷰포트 이동
         comparisonView.classList.add('hidden');
@@ -613,9 +622,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (user) {
                 // 사용자가 로그인한 상태: 프로필 정보로 버튼 교체 및 로그아웃 기능 추가
                 authWrapper.innerHTML = `
-                    <div class="user-profile">
-                        <img src="${user.photoURL || 'https://via.placeholder.com/150'}" alt="Profile">
-                        <span>${user.displayName}님</span>
+                    <div class="user-profile" style="position:relative; display:flex; align-items:center; gap:0.5rem; cursor:pointer;" onclick="var menu = document.getElementById('logoutMenu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none';">
+                        <img src="${user.photoURL || 'https://via.placeholder.com/150'}" alt="Profile" style="width:32px; height:32px; border-radius:50%;">
+                        <span style="color:var(--text); font-weight:500;">${user.displayName}</span>
+                        <div id="logoutMenu" style="display:none; position:absolute; top:110%; right:0; background:var(--bg-surface); padding:0.5rem; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); border:1px solid var(--glass-border); min-width:140px; z-index:1000;">
+                            <button onclick="window.auth.signOut().then(()=>window.location.reload())" style="width:100%; text-align:left; padding:0.5rem; font-size:0.9rem; color:var(--accent-danger); border-radius:4px; display:inline-flex; align-items:center;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> 
+                                로그아웃
+                            </button>
+                        </div>
                     </div>
                 `;
                 
@@ -662,6 +677,26 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 메인 페이지 인기 검색어 로드
         fetchTopSearchesForMain();
+        
+        // 동적 히어로 타이틀 실행
+        startDynamicTitle();
+    }
+    
+    // 동적 타이틀 로직 (당근마켓형)
+    function startDynamicTitle() {
+        const el = document.getElementById('dynamicKeyword');
+        if(!el) return;
+        const keywords = ["아이폰 16", "M3 맥북", "에어팟 프로", "다이슨"];
+        let currentIndex = 0;
+        
+        setInterval(() => {
+            el.style.opacity = 0;
+            setTimeout(() => {
+                currentIndex = (currentIndex + 1) % keywords.length;
+                el.innerText = keywords[currentIndex];
+                el.style.opacity = 1;
+            }, 400); // fade out duration
+        }, 3000); // 3 seconds interval
     }
 
     async function fetchTopSearchesForMain() {
