@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         modalTypingTimer = setTimeout(() => {
-            modalSearch(query);
+            window.modalSearch(query);
         }, 500);
     });
 
@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') {
             e.preventDefault();
             const query = e.target.value.trim();
-            if (query) modalSearch(query);
+            if (query) window.modalSearch(query);
         }
     });
 
@@ -474,11 +474,11 @@ document.addEventListener('DOMContentLoaded', () => {
         modalSearchInput.focus();
     };
 
-    async function modalSearch(keyword) {
+    window.modalSearch = async function(keyword) {
         modalSearchResults.innerHTML = '<div style="padding:2rem; text-align:center;"><div class="loading-spinner"></div></div>';
         
         try {
-            const response = await fetch(`${API_BASE_URL}/api/searchProducts?keyword=${encodeURIComponent(keyword)}&display=10`);
+            const response = await fetch(`/api/searchProducts?keyword=${encodeURIComponent(keyword)}&display=10`);
             const data = await response.json();
             
             if (data.items && data.items.length > 0) {
