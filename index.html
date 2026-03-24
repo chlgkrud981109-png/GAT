@@ -162,6 +162,24 @@
         </div>
     </footer>
 
+    <!-- Premium Upgrade Modal -->
+    <div id="premiumModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <i data-lucide="x" class="modal-close" id="closePremiumModal"></i>
+            <div class="premium-badge">PREMIUM FEATURE</div>
+            <i data-lucide="crown" class="main-icon"></i>
+            <h2 style="margin-bottom: 1rem;">3개 이상 비교는 <br>프리미엄 전용입니다</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.6;">
+                무료 버전은 1:1 라이벌 대결만 지원합니다.<br>
+                무제한 다중 비교와 더 상세한 AI 분석을 원하시면<br>
+                지금 멤버십으로 업그레이드하세요!
+            </p>
+            <button class="btn btn-primary" style="width: 100%;" onclick="alert('결제 페이지로 이동합니다 (준비 중)')">
+                지금 업그레이드하기
+            </button>
+        </div>
+    </div>
+
     <script src="app.js"></script>
     
     <!-- Firebase Compat Modules (Vanilla HTML 친화적) -->

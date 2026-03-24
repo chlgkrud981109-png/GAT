@@ -160,7 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- State ---
     let currentCategory = 'all';
-    let fixedProduct = null; // Step 1: 고정된 기준 상품
+    let fixedProduct = null;      // Step 1: 고정된 기준 상품
+    let competitorProduct = null; // Step 2: 비교 상대 상품
     
     // --- UI Helpers ---
     // 공통 이미지 Fallback 처리 (네이버 등에서 이미지가 깨질 때 방어)
@@ -168,6 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Selectors ---
     const competitorSlot = document.getElementById('competitorSlot');
+    const premiumModal = document.getElementById('premiumModal');
+    const closePremiumModal = document.getElementById('closePremiumModal');
 
     // --- Event Listeners ---
     
@@ -222,11 +225,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reset Button (비교 초기화 및 선택창 복귀)
     resetBtn.addEventListener('click', () => {
         fixedProduct = null;
+        competitorProduct = null;
         hideComparison();
         selectionArea.classList.remove('hidden');
         selectionArea.scrollIntoView({ behavior: 'smooth' });
         searchInput.value = '';
     });
+
+    closePremiumModal.addEventListener('click', () => {
+        premiumModal.classList.add('hidden');
+    });
+
+    window.onclick = (event) => {
+        if (event.target == premiumModal) {
+            premiumModal.classList.add('hidden');
+        }
+    };
 
 
     // --- Functions ---
@@ -372,22 +386,74 @@ document.addEventListener('DOMContentLoaded', () => {
         const product = dynamicProducts.find(p => p.uid === uid);
         if(!product) return;
 
-        // Step 1: 첫 번째 선택한 상품을 기준 상품으로 고정
-        fixedProduct = {
-            id: product.uid,
-            name: product.name,
-            brand: product.brand,
-            image: product.image,
-            price: product.priceFormatted,
-            priceVal: product.lprice,
-            url: product.link
-        };
+        // Step 1: 기준 상품이 없으면 첫 번째 슬롯에 고정
+        if (!fixedProduct) {
+            fixedProduct = {
+                id: product.uid,
+                name: product.name,
+                brand: product.brand,
+                image: product.image,
+                price: product.priceFormatted,
+                priceVal: product.lprice,
+                url: product.link,
+                specs: parseSpecs(product.name, product.brand)
+            };
+        } 
+        // Step 2: 기준 상품이 있고 비교 대상이 없으면 두 번째 슬롯에 지명
+        else if (!competitorProduct) {
+            // 본인 중복 선택 방지
+            if (fixedProduct.id === product.uid) {
+                alert("자기 자신과 비교할 수 없습니다. 다른 상품을 선택해주세요!");
+                return;
+            }
+            competitorProduct = {
+                id: product.uid,
+                name: product.name,
+                brand: product.brand,
+                image: product.image,
+                price: product.priceFormatted,
+                priceVal: product.lprice,
+                url: product.link,
+                specs: parseSpecs(product.name, product.brand)
+            };
+        }
+        // Step 3: 이미 1:1 구도가 잡혔는데 또 선택하려 하면 Premium 유도
+        else {
+            showPremiumPopup();
+            return;
+        }
 
         // UI 전환: 선택 화면 숨기고 비교 화면 노출
         selectionArea.classList.add('hidden');
         comparisonView.classList.remove('hidden');
 
         renderComparison();
+    };
+
+    function showPremiumPopup() {
+        premiumModal.classList.remove('hidden');
+    }
+
+    // 스펙 동적 추출기 (상품명 분석)
+    const parseSpecs = (name, mallName) => {
+        const specs = { '쇼핑몰': mallName, '상태': '새상품' };
+        const lowerName = name.toLowerCase();
+        
+        if (lowerName.includes('apple') || lowerName.includes('아이폰') || lowerName.includes('맥북') || lowerName.includes('에어팟')) specs['브랜드/제조사'] = 'Apple';
+        else if (lowerName.includes('삼성') || lowerName.includes('갤럭시')) specs['브랜드/제조사'] = '삼성전자';
+        else if (lowerName.includes('lg') || lowerName.includes('그램') || lowerName.includes('스탠바이미')) specs['브랜드/제조사'] = 'LG전자';
+        else specs['브랜드/제조사'] = '기타/미상';
+        
+        const ramMatch = name.match(/(\d{1,2}GB?)\s*(ram|메모리)?/i);
+        if (ramMatch && !lowerName.includes('ssd')) specs['메모리 (RAM)'] = ramMatch[1].toUpperCase();
+        
+        const storageMatch = name.match(/(\d{3}GB|1TB|2TB)/i);
+        if (storageMatch) specs['저장용량'] = storageMatch[1].toUpperCase();
+        
+        if (lowerName.includes('5g')) specs['네트워크'] = '5G 지원';
+        else if (lowerName.includes('근거리') || lowerName.includes('블루투스')) specs['네트워크'] = '연동 특화';
+        
+        return specs;
     };
 
     function hideComparison() {
@@ -418,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // (Reset Button listeners are handled above)
 
-    // Render Matchup View (Step 1)
+    // Render Matchup View (Step 1 & 2)
     function renderComparison() {
         if (!fixedProduct) return;
 
@@ -431,35 +497,103 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="btn btn-primary" onclick="window.open('${fixedProduct.url}', '_blank')">최저가 방문</button>
         `;
 
-        // 2. 우측 (비교 대기 슬롯) 렌더링
-        competitorSlot.innerHTML = `
-            <div class="empty-slot" onclick="window.scrollToSearch()">
-                <i data-lucide="plus-circle"></i>
-                <span>비교할 상품 검색하기</span>
-            </div>
-        `;
+        // 2. 우측 (비교 대기 or 지명 상품) 렌더링
+        if (!competitorProduct) {
+            competitorSlot.innerHTML = `
+                <div class="empty-slot" onclick="window.scrollToSearch()">
+                    <i data-lucide="plus-circle"></i>
+                    <span>비교할 상품 검색하기</span>
+                </div>
+            `;
+            
+            // 상세 스펙 테이블 - 대기 모드
+            specsTable.innerHTML = `
+                <tbody>
+                    <tr class="category-row">
+                        <th colspan="2">비교할 대상을 선택해주세요</th>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="text-align:center; padding: 3rem; color:var(--text-secondary);">
+                            우측의 [+] 버튼을 눌러 비교할 상품을 검색하고 지명해주세요.
+                        </td>
+                    </tr>
+                </tbody>
+            `;
+        } else {
+            competitorSlot.innerHTML = `
+                <div style="position:relative; width:100%;">
+                    <i data-lucide="trash-2" class="remove-slot" onclick="window.removeCompetitor()"></i>
+                    <img src="${competitorProduct.image}" alt="${competitorProduct.name}" class="compare-img" onerror="${onImgError}">
+                    <div class="compare-brand">${competitorProduct.brand}</div>
+                    <div class="compare-title">${competitorProduct.name}</div>
+                    <div class="compare-price">${competitorProduct.price}</div>
+                    <button class="btn btn-shiny" onclick="window.open('${competitorProduct.url}', '_blank')">최저가 방문</button>
+                </div>
+            `;
 
-        lucide.createIcons();
+            // 3. 1:1 명세 비교표 렌더링
+            const specKeys = ['브랜드/제조사', '메모리 (RAM)', '저장용량', '네트워크', '쇼핑몰'];
+            const specLabels = {
+                '브랜드/제조사': '제조사',
+                '메모리 (RAM)': 'RAM',
+                '저장용량': '저장소',
+                '네트워크': '네트워크',
+                '쇼핑몰': '판매처'
+            };
 
-        // 상세 스펙 테이블은 아직 상품이 하나이므로 비워두거나 숨김 처리
-        specsTable.innerHTML = `
-            <tbody>
+            let tableHTML = `
+                <tbody>
+                    <tr class="category-row">
+                        <th colspan="3">1:1 라이벌 명세 대조</th>
+                    </tr>
+            `;
+
+            specKeys.forEach(key => {
+                const baseVal = fixedProduct.specs[key] || '-';
+                const compVal = competitorProduct.specs[key] || '-';
+                
+                tableHTML += `
+                    <tr>
+                        <td class="spec-label" style="width:20%;">${specLabels[key] || key}</td>
+                        <td class="spec-value" style="width:40%; text-align:center;">${baseVal}</td>
+                        <td class="spec-value" style="width:40%; text-align:center;">${compVal}</td>
+                    </tr>
+                `;
+            });
+
+            // 장단점 (Mock)
+            tableHTML += `
                 <tr class="category-row">
-                    <th colspan="2">비교할 대상을 선택해주세요</th>
+                    <th colspan="3">AI 특징 분석</th>
                 </tr>
                 <tr>
-                    <td colspan="2" style="text-align:center; padding: 3rem; color:var(--text-secondary);">
-                        우측의 [+] 버튼을 눌러 비교할 상품을 검색하고 지명해주세요.
+                    <td class="spec-label">추천 포인트</td>
+                    <td class="spec-value" style="font-size:0.9rem;">
+                        ✅ ${fixedProduct.brand}의 정체성이 돋보이는 디자인<br>
+                        ✅ 실사용자 선호도가 높은 스테디셀러
+                    </td>
+                    <td class="spec-value" style="font-size:0.9rem;">
+                        ✅ 동급 대비 뛰어난 가성비와 퍼포먼스<br>
+                        ✅ 해당 카테고리의 강력한 대항마
                     </td>
                 </tr>
-            </tbody>
-        `;
+            </tbody>`;
+            
+            specsTable.innerHTML = tableHTML;
+        }
+
+        lucide.createIcons();
 
         // Scroll to comparison
         setTimeout(() => {
             comparisonView.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
     }
+
+    window.removeCompetitor = () => {
+        competitorProduct = null;
+        renderComparison();
+    };
 
     window.scrollToSearch = () => {
         selectionArea.classList.remove('hidden');
