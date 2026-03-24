@@ -162,6 +162,28 @@
         </div>
     </footer>
 
+    <!-- Search Modal for Competitor Selection -->
+    <div id="searchModal" class="modal-overlay hidden">
+        <div class="modal-content search-modal-content">
+            <i data-lucide="x" class="modal-close" id="closeSearchModal"></i>
+            <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="search" style="width: 20px;"></i> 비교할 상품 검색
+            </h3>
+            
+            <div class="search-box glass-panel" style="margin-bottom: 1.5rem; padding: 0.5rem;">
+                <input type="text" id="modalSearchInput" placeholder="모델명이나 브랜드를 입력하세요..." 
+                       style="width: 100%; border:none; background:transparent; padding: 0.75rem; font-size: 1rem; color: var(--text-primary); outline:none;">
+            </div>
+
+            <div id="modalSearchResults" class="modal-results-container">
+                <!-- Dynamic Search Results -->
+                <div class="empty-state" style="padding: 2rem;">
+                    <p style="color: var(--text-secondary);">키워드를 입력해 비교 대상을 찾아보세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Premium Upgrade Modal -->
     <div id="premiumModal" class="modal-overlay hidden">
         <div class="modal-content">

@@ -712,6 +712,71 @@ a {
     transform: translateY(0);
 }
 
+.search-modal-content {
+    max-width: 600px;
+    text-align: left;
+    padding: 2rem;
+}
+
+.modal-results-container {
+    max-height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-right: 0.5rem;
+}
+
+.modal-result-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-result-card:hover {
+    background: var(--bg-surface);
+    border-color: var(--accent-primary);
+    transform: translateX(5px);
+}
+
+.modal-result-card img {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: white;
+}
+
+.modal-result-card .info {
+    flex: 1;
+}
+
+.modal-result-card .name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.modal-result-card .price {
+    font-size: 0.85rem;
+    color: var(--accent-primary);
+    font-weight: 700;
+}
+
+.modal-results-container::-webkit-scrollbar {
+    width: 6px;
+}
+.modal-results-container::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
 .modal-content i.main-icon {
     width: 64px;
     height: 64px;

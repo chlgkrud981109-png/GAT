@@ -171,6 +171,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const competitorSlot = document.getElementById('competitorSlot');
     const premiumModal = document.getElementById('premiumModal');
     const closePremiumModal = document.getElementById('closePremiumModal');
+    
+    // Modal Search Selectors
+    const searchModal = document.getElementById('searchModal');
+    const closeSearchModal = document.getElementById('closeSearchModal');
+    const modalSearchInput = document.getElementById('modalSearchInput');
+    const modalSearchResults = document.getElementById('modalSearchResults');
 
     // --- Event Listeners ---
     
@@ -232,13 +238,40 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.value = '';
     });
 
-    closePremiumModal.addEventListener('click', () => {
-        premiumModal.classList.add('hidden');
+    closeSearchModal.addEventListener('click', () => {
+        searchModal.classList.add('hidden');
+    });
+
+    // Modal Search Typing Event
+    let modalTypingTimer;
+    modalSearchInput.addEventListener('input', (e) => {
+        clearTimeout(modalTypingTimer);
+        const query = e.target.value.trim();
+        if (query.length < 2) {
+            modalSearchResults.innerHTML = '<div class="empty-state" style="padding: 2rem;"><p style="color: var(--text-secondary);">2글자 이상 입력하세요.</p></div>';
+            return;
+        }
+        
+        modalTypingTimer = setTimeout(() => {
+            modalSearch(query);
+        }, 500);
+    });
+
+    // Modal Search Enter Key
+    modalSearchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const query = e.target.value.trim();
+            if (query) modalSearch(query);
+        }
     });
 
     window.onclick = (event) => {
         if (event.target == premiumModal) {
             premiumModal.classList.add('hidden');
+        }
+        if (event.target == searchModal) {
+            searchModal.classList.add('hidden');
         }
     };
 
@@ -382,8 +415,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadInitialDynamicData();
 
     // --- Core Logic ---
-    window.selectProduct = async function(uid) {
-        const product = dynamicProducts.find(p => p.uid === uid);
+    window.selectProduct = async function(uid, isModal = false) {
+        // 모달에서 선택한 경우와 메인 그리드에서 선택한 경우 구분하여 검색 결과에서 찾기
+        const targetList = isModal ? window.modalProducts : dynamicProducts;
+        const product = (targetList || []).find(p => p.uid === uid);
         if(!product) return;
 
         // Step 1: 기준 상품이 없으면 첫 번째 슬롯에 고정
@@ -401,7 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } 
         // Step 2: 기준 상품이 있고 비교 대상이 없으면 두 번째 슬롯에 지명
         else if (!competitorProduct) {
-            // 본인 중복 선택 방지
             if (fixedProduct.id === product.uid) {
                 alert("자기 자신과 비교할 수 없습니다. 다른 상품을 선택해주세요!");
                 return;
@@ -416,8 +450,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 url: product.link,
                 specs: parseSpecs(product.name, product.brand)
             };
+            // 2단계 상품 지명 후 모달 닫기
+            if (isModal) searchModal.classList.add('hidden');
         }
-        // Step 3: 이미 1:1 구도가 잡혔는데 또 선택하려 하면 Premium 유도
         else {
             showPremiumPopup();
             return;
@@ -427,8 +462,58 @@ document.addEventListener('DOMContentLoaded', () => {
         selectionArea.classList.add('hidden');
         comparisonView.classList.remove('hidden');
 
+        // 스크롤 이동 전 렌더링
         renderComparison();
     };
+
+    // --- Modal Search Functions ---
+    window.openSearchModal = () => {
+        searchModal.classList.remove('hidden');
+        modalSearchInput.value = '';
+        modalSearchResults.innerHTML = '<div class="empty-state" style="padding: 2rem;"><p style="color: var(--text-secondary);">비교할 상품명을 입력하세요.</p></div>';
+        modalSearchInput.focus();
+    };
+
+    async function modalSearch(keyword) {
+        modalSearchResults.innerHTML = '<div style="padding:2rem; text-align:center;"><div class="loading-spinner"></div></div>';
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/searchProducts?keyword=${encodeURIComponent(keyword)}&display=10`);
+            const data = await response.json();
+            
+            if (data.items && data.items.length > 0) {
+                window.modalProducts = data.items.map(item => ({
+                    uid: `m-${item.productId}`,
+                    name: item.title.replace(/<b>/g, '').replace(/<\/b>/g, ''),
+                    brand: item.brand || item.mallName,
+                    image: item.image,
+                    lprice: item.lprice,
+                    priceFormatted: parseInt(item.lprice).toLocaleString() + '원',
+                    link: item.link
+                }));
+                renderModalResults(window.modalProducts);
+            } else {
+                modalSearchResults.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-secondary);">검색 결과가 없습니다.</div>';
+            }
+        } catch (error) {
+            console.error("Modal Search Error:", error);
+            modalSearchResults.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--accent-error);">오류가 발생했습니다. 다시 시도해주세요.</div>';
+        }
+    }
+
+    function renderModalResults(products) {
+        modalSearchResults.innerHTML = products.map(p => `
+            <div class="modal-result-card" onclick="selectProduct('${p.uid}', true)">
+                <img src="${p.image}" alt="${p.name}" onerror="${onImgError}">
+                <div class="info">
+                    <div class="name">${p.name}</div>
+                    <div class="price">${p.priceFormatted}</div>
+                </div>
+                <i data-lucide="plus-circle" style="width:18px; color:var(--accent-primary);"></i>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    }
 
     function showPremiumPopup() {
         premiumModal.classList.remove('hidden');
@@ -500,7 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. 우측 (비교 대기 or 지명 상품) 렌더링
         if (!competitorProduct) {
             competitorSlot.innerHTML = `
-                <div class="empty-slot" onclick="window.scrollToSearch()">
+                <div class="empty-slot" onclick="window.openSearchModal()">
                     <i data-lucide="plus-circle"></i>
                     <span>비교할 상품 검색하기</span>
                 </div>
