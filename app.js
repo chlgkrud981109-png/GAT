@@ -160,10 +160,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- State ---
     let currentCategory = 'all';
-
+    let fixedProduct = null; // Step 1: 고정된 기준 상품
+    
     // --- UI Helpers ---
     // 공통 이미지 Fallback 처리 (네이버 등에서 이미지가 깨질 때 방어)
     const onImgError = "this.onerror=null;this.src='https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=400&q=80';";
+
+    // --- Selectors ---
+    const competitorSlot = document.getElementById('competitorSlot');
 
     // --- Event Listeners ---
     
@@ -217,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Reset Button (비교 초기화 및 선택창 복귀)
     resetBtn.addEventListener('click', () => {
+        fixedProduct = null;
         hideComparison();
         selectionArea.classList.remove('hidden');
         selectionArea.scrollIntoView({ behavior: 'smooth' });
@@ -367,63 +372,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const product = dynamicProducts.find(p => p.uid === uid);
         if(!product) return;
 
-        // Hide selection, show comparison
-        selectionArea.classList.add('hidden');
-        comparisonView.classList.remove('hidden');
-
-        // 스펙 동적 추출기 (상품명 분석)
-        const parseSpecs = (name, mallName) => {
-            const specs = { '쇼핑몰': mallName, '상태': '새상품' };
-            const lowerName = name.toLowerCase();
-            
-            if (lowerName.includes('apple') || lowerName.includes('아이폰') || lowerName.includes('맥북') || lowerName.includes('에어팟')) specs['브랜드/제조사'] = 'Apple';
-            else if (lowerName.includes('삼성') || lowerName.includes('갤럭시')) specs['브랜드/제조사'] = '삼성전자';
-            else if (lowerName.includes('lg') || lowerName.includes('그램') || lowerName.includes('스탠바이미')) specs['브랜드/제조사'] = 'LG전자';
-            else specs['브랜드/제조사'] = '기타/미상';
-            
-            const ramMatch = name.match(/(\d{1,2}GB?)\s*(ram|메모리)?/i);
-            if (ramMatch && !lowerName.includes('ssd')) specs['메모리 (RAM)'] = ramMatch[1].toUpperCase();
-            
-            const storageMatch = name.match(/(\d{3}GB|1TB|2TB)/i);
-            if (storageMatch) specs['저장용량'] = storageMatch[1].toUpperCase();
-            
-            if (lowerName.includes('5g')) specs['네트워크'] = '5G 지원';
-            else if (lowerName.includes('근거리') || lowerName.includes('블루투스')) specs['네트워크'] = '연동 특화';
-            
-            return specs;
-        };
-
-        // 경쟁 모델 동적 생성 (같은 검색 결과 목록에서 다른 상품 2~3개 추출)
-        const competitorItems = dynamicProducts.filter(p => p.uid !== uid).slice(0, 3);
-        
-        // Transform base product to required format
-        const baseProductObj = {
+        // Step 1: 첫 번째 선택한 상품을 기준 상품으로 고정
+        fixedProduct = {
             id: product.uid,
             name: product.name,
             brand: product.brand,
             image: product.image,
             price: product.priceFormatted,
             priceVal: product.lprice,
-            url: product.link, // 기준 상품도 URL 전달
-            specs: parseSpecs(product.name, product.brand),
-            pros: ['검색 조건에 완벽히 일치하는 메인 제품', '검증된 실시간 최저가 제공', '다결과 대비 높은 연관도'],
-            cons: ['실시간 재고 변동 가능성', '배송비 별도 청구 홗인 요망']
+            url: product.link
         };
 
-        const competitorObjs = competitorItems.map(c => ({
-            id: c.uid,
-            name: c.name,
-            brand: c.brand,
-            image: c.image,
-            price: c.priceFormatted,
-            priceVal: c.lprice,
-            url: c.link,
-            specs: parseSpecs(c.name, c.brand),
-            pros: ['동급 대비 합리적인 대안', '동일 카테고리의 베스트셀러 후보'],
-            cons: ['브랜드 선호도에 따른 호불호', '일부 스펙의 미세한 차이']
-        }));
+        // UI 전환: 선택 화면 숨기고 비교 화면 노출
+        selectionArea.classList.add('hidden');
+        comparisonView.classList.remove('hidden');
 
-        renderComparison(baseProductObj, competitorObjs, product.link);
+        renderComparison();
     };
 
     function hideComparison() {
@@ -454,163 +418,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // (Reset Button listeners are handled above)
 
-    // Render Full Comparison View
-    function renderComparison(baseProduct, competitors, baseUrl) {
-        selectionArea.classList.add('hidden');
-        comparisonView.classList.remove('hidden');
+    // Render Matchup View (Step 1)
+    function renderComparison() {
+        if (!fixedProduct) return;
 
-        if (!baseProduct) return;
-        
-        // 1. Render Headers (Cards) Wait for API
-        const renderHeaderSkeleton = (p) => `
-            <img src="${p.image}" alt="${p.name}" class="compare-img" onerror="${onImgError}">
-            <div class="compare-brand">${p.brand}</div>
-            <div class="compare-title">${p.name}</div>
-            <div id="price-${p.id}" class="skeleton-text"></div>
-            <div id="btn-${p.id}" class="skeleton-btn"></div>
+        // 1. 좌측 (기준 상품) 렌더링
+        baseProductCard.innerHTML = `
+            <img src="${fixedProduct.image}" alt="${fixedProduct.name}" class="compare-img" onerror="${onImgError}">
+            <div class="compare-brand">${fixedProduct.brand}</div>
+            <div class="compare-title">${fixedProduct.name}</div>
+            <div class="compare-price">${fixedProduct.price}</div>
+            <button class="btn btn-primary" onclick="window.open('${fixedProduct.url}', '_blank')">최저가 방문</button>
         `;
 
-        // Initial skeleton render for price and button areas
-        baseProductCard.innerHTML = renderHeaderSkeleton(baseProduct);
-        competitorsWrapper.innerHTML = competitors.map(comp => `
-            <div class="competitor-col">
-                ${renderHeaderSkeleton(comp)}
+        // 2. 우측 (비교 대기 슬롯) 렌더링
+        competitorSlot.innerHTML = `
+            <div class="empty-slot" onclick="window.scrollToSearch()">
+                <i data-lucide="plus-circle"></i>
+                <span>비교할 상품 검색하기</span>
             </div>
-        `).join('');
-
-        // Fetch prices asynchronously (Fake delay via JS for skeleton effect since data is already live)
-        const allProductsToFetch = [baseProduct, ...competitors];
-        
-        allProductsToFetch.forEach((p) => {
-            setTimeout(() => {
-                // Update specific product's price and render the Buy button
-                const priceContainer = document.getElementById(`price-${p.id}`);
-                const btnContainer = document.getElementById(`btn-${p.id}`);
-                
-                if(priceContainer && btnContainer) {
-                    priceContainer.className = 'compare-price';
-                    priceContainer.innerHTML = `
-                        ${p.price}
-                        <div class="source-tag"><i data-lucide="check-circle"></i> 네이버 쇼핑 실시간 최저가 기준</div>
-                    `;
-                    
-                    btnContainer.className = ''; // remove skeleton class
-                    
-                    // Alert 제거, 새 창(window.open)으로 진짜 최저가 판매 주소 연결!
-                    btnContainer.innerHTML = `
-                        <button class="btn btn-shiny" onclick="window.open('${p.url}', '_blank')">
-                            <i data-lucide="info"></i> 실시간 최저가 방문
-                        </button>
-                    `;
-                    // Re-init lucide icons for newly added icons
-                    lucide.createIcons();
-                }
-            }, 800 + (Math.random() * 500)); // 0.8s ~ 1.3s delay
-        });
-
-        // 2. Render Details Table
-        // Spec categories defined dynamically or statically. We extract common keys.
-        const allSpecs = {...baseProduct.specs};
-        competitors.forEach(comp => {
-            Object.keys(comp.specs).forEach(key => {
-                if (!allSpecs[key]) allSpecs[key] = true;
-            });
-        });
-
-        const specKeys = Object.keys(allSpecs);
-        const specLabels = {
-            os: '운영체제',
-            processor: '프로세서/칩셋',
-            display: '디스플레이',
-            ram: '메모리 (RAM)',
-            storage: '저장 용량',
-            camera: '카메라',
-            battery: '배터리 용량',
-            weight: '무게'
-        };
-
-        let tableHTML = `
-            <tbody>
-                <tr class="category-row">
-                    <th colspan="${2 + competitors.length}">기본 사양 비교</th>
-                </tr>
         `;
 
-        specKeys.forEach(key => {
-            // Find "winner" if sortable, e.g., weight, price
-            // Basic simplistic highlight logic for RAM (contains higher number)
-            
-            const baseVal = baseProduct.specs[key] || '-';
-            const compValsHTML = competitors.map(comp => {
-                const val = comp.specs[key] || '-';
-                return `<td class="spec-value comp-spec">${val}</td>`;
-            }).join('');
-
-            tableHTML += `
-                <tr>
-                    <td class="spec-label">${specLabels[key] || key.toUpperCase()}</td>
-                    <td class="spec-value base-spec"><strong>${baseVal}</strong></td>
-                    ${compValsHTML}
-                </tr>
-            `;
-        });
-
-        // 장단점 섹션 추가
-        tableHTML += `
-            <tr class="category-row">
-                <th colspan="${2 + competitors.length}">장단점 요약</th>
-            </tr>
-            <tr>
-                <td class="spec-label">주요 장점</td>
-                <td class="spec-value base-spec">
-                    <ul class="pro-list">
-                        ${baseProduct.pros.map(pro => `
-                            <li class="pro-item"><i data-lucide="check-circle" class="pro-icon"></i> <span>${pro}</span></li>
-                        `).join('')}
-                    </ul>
-                </td>
-                ${competitors.map(comp => `
-                    <td class="spec-value comp-spec">
-                        <ul class="pro-list">
-                            ${comp.pros.map(pro => `
-                                <li class="pro-item"><i data-lucide="check-circle" class="pro-icon"></i> <span>${pro}</span></li>
-                            `).join('')}
-                        </ul>
-                    </td>
-                `).join('')}
-            </tr>
-            <tr>
-                <td class="spec-label">아쉬운 점</td>
-                <td class="spec-value base-spec">
-                    <ul class="con-list">
-                        ${baseProduct.cons.map(con => `
-                            <li class="con-item"><i data-lucide="x-circle" class="con-icon"></i> <span>${con}</span></li>
-                        `).join('')}
-                    </ul>
-                </td>
-                ${competitors.map(comp => `
-                    <td class="spec-value comp-spec">
-                        <ul class="con-list">
-                            ${comp.cons.map(con => `
-                                <li class="con-item"><i data-lucide="x-circle" class="con-icon"></i> <span>${con}</span></li>
-                            `).join('')}
-                        </ul>
-                    </td>
-                `).join('')}
-            </tr>
-        `;
-
-        tableHTML += `</tbody>`;
-        specsTable.innerHTML = tableHTML;
-        
-        // Re-init newly added Lucide icons
         lucide.createIcons();
 
-        // Scroll to comparison gracefully
+        // 상세 스펙 테이블은 아직 상품이 하나이므로 비워두거나 숨김 처리
+        specsTable.innerHTML = `
+            <tbody>
+                <tr class="category-row">
+                    <th colspan="2">비교할 대상을 선택해주세요</th>
+                </tr>
+                <tr>
+                    <td colspan="2" style="text-align:center; padding: 3rem; color:var(--text-secondary);">
+                        우측의 [+] 버튼을 눌러 비교할 상품을 검색하고 지명해주세요.
+                    </td>
+                </tr>
+            </tbody>
+        `;
+
+        // Scroll to comparison
         setTimeout(() => {
             comparisonView.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
     }
+
+    window.scrollToSearch = () => {
+        selectionArea.classList.remove('hidden');
+        selectionArea.scrollIntoView({ behavior: 'smooth' });
+        searchInput.focus();
+    };
 
     // --- Firebase Logic (Auth & DB Event Binding) ---
     // index.html에서 보안 통신으로 firebase 객체가 성공적으로 초기화된 후 실행됩니다.
