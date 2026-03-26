@@ -489,8 +489,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // data 자체가 없거나 items가 없을 경우 방어
             if (data && data.items && Array.isArray(data.items) && data.items.length > 0) {
                 window.modalProducts = data.items.map(item => {
-                    // item.name 또는 item.title이 없을 경우를 대비해 빈 문자열 처리 및 replace 에러 방지
-                    const rawName = item.name || item.title || '';
+                    // (item.title || "") 를 사용하여 replace 에러 원천 차단
+                    const rawName = item.name || (item.title || "");
                     const cleanName = rawName.replace(/<b>/g, '').replace(/<\/b>/g, '');
                     
                     return {
