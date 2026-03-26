@@ -69,15 +69,20 @@ export async function onRequest(context) {
 
     const data = await response.json();
     
-    // items 배열을 살짝 정제하여 클라이언트로 반환
+    // items 배열을 살짝 정제하여 클라이언트로 반환 (상세 정보 포함)
     const cleanItems = (data.items || []).map(item => ({
       id: item.productId,
       name: item.title.replace(/<[^>]*>?/g, ''), // HTML 태그 제거
-      brand: item.mallName,
+      brand: item.brand,
+      maker: item.maker,
+      mallName: item.mallName,
       image: item.image,
       lprice: parseInt(item.lprice, 10),
+      hprice: item.hprice ? parseInt(item.hprice, 10) : null,
       priceFormatted: '₩' + parseInt(item.lprice, 10).toLocaleString(),
-      link: item.link
+      link: item.link,
+      category: `${item.category1} > ${item.category2} > ${item.category3}`,
+      productType: item.productType // 1: 가격비교(Cluster), 2: 최저가몰, 3: 일반상품 등
     }));
 
     return new Response(JSON.stringify({

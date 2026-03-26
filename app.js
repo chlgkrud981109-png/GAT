@@ -368,6 +368,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) { console.warn("Firestore logging skipped"); }
         }
 
+        // UI 상태 전환: 검색 결과창 노출, 기존 비교창 숨김
+        comparisonView.classList.add('hidden');
+        selectionArea.classList.remove('hidden');
+
         selectionArea.scrollIntoView({ behavior: 'smooth' });
         productGrid.innerHTML = `
             <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--text-secondary);">
@@ -545,27 +549,83 @@ document.addEventListener('DOMContentLoaded', () => {
         comparisonView.classList.add('hidden');
     }
 
+    function groupProducts(products) {
+        const groups = {};
+        products.forEach(p => {
+            // Grouping Key: Brand + Normalized model name (first 3 words)
+            const normalizedName = p.name.replace(/[\[\]\(\)]/g, '').trim();
+            const words = normalizedName.split(/\s+/);
+            const modelKey = words.slice(0, 3).join(' ').toLowerCase();
+            const key = (p.brand || 'unknown').toLowerCase() + "|" + modelKey;
+            
+            if (!groups[key]) {
+                groups[key] = { winner: p, others: [] };
+            } else {
+                // Winner Criteria: Lowest Price
+                if (p.lprice < groups[key].winner.lprice) {
+                    groups[key].others.push(groups[key].winner);
+                    groups[key].winner = p;
+                } else {
+                    groups[key].others.push(p);
+                }
+            }
+        });
+        return Object.values(groups);
+    }
+
     function renderDynamicGrid(productsList) {
         if (!productsList || productsList.length === 0) {
             productGrid.innerHTML = '<p style="text-align:center; grid-column:1/-1;">상품이 존재하지 않습니다.</p>';
             return;
         }
 
-        productGrid.innerHTML = productsList.map(product => `
-            <div class="product-card-mini" onclick="selectProduct('${product.uid}')">
-                <div class="product-image-wrap">
-                    <img src="${product.image}" alt="${product.name}" onerror="${onImgError}">
+        const grouped = groupProducts(productsList);
+
+        productGrid.innerHTML = grouped.map(group => {
+            const product = group.winner;
+            const hasOthers = group.others.length > 0;
+            
+            return `
+                <div class="product-card-mini" onclick="selectProduct('${product.uid}')">
+                    <div class="winner-badge" style="position:absolute; top:0.5rem; right:0.5rem; background:var(--accent-primary); color:white; font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:4px; font-weight:700; z-index:5;">ITEM WINNER</div>
+                    <div class="product-image-wrap">
+                        <img src="${product.image}" alt="${product.name}" onerror="${onImgError}">
+                    </div>
+                    <div style="flex: 1; display:flex; flex-direction:column; gap:0.3rem;">
+                        <span class="brand" style="font-size:0.75rem;">${product.brand || '제조사 미상'}</span>
+                        <h3 style="font-size:0.9rem; line-height:1.2; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${product.name}</h3>
+                    </div>
+                    <div style="margin-top: auto;">
+                        <div style="font-weight: 700; color: var(--accent-primary); font-size:1.1rem;">
+                            ${product.priceFormatted}
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.2rem;">
+                            판매처: ${product.mallName}
+                        </div>
+                        ${hasOthers ? `
+                            <div class="other-sellers-toggle" onclick="event.stopPropagation(); window.toggleOtherSellers('${product.uid}')" style="margin-top:0.5rem; font-size:0.8rem; color:var(--accent-primary); font-weight:600; text-decoration:underline; cursor:pointer;">
+                                외 ${group.others.length}개 판매처 더보기
+                            </div>
+                            <div id="others-${product.uid}" class="other-sellers-list hidden" style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid #eee; display:flex; flex-direction:column; gap:0.4rem;">
+                                ${group.others.slice(0, 3).map(o => `
+                                    <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+                                        <span style="color:var(--text-secondary);">${o.mallName}</span>
+                                        <span style="font-weight:600;">₩${o.lprice.toLocaleString()}</span>
+                                    </div>
+                                `).join('')}
+                                ${group.others.length > 3 ? `<div style="font-size:0.7rem; color:var(--text-muted); text-align:right;">...외 추가 판매처 있음</div>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
-                <div style="flex: 1; display:flex; flex-direction:column; gap:0.3rem;">
-                    <span class="brand" style="font-size:0.75rem;">${product.brand}</span>
-                    <h3 style="font-size:0.9rem; line-height:1.2; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${product.name}</h3>
-                </div>
-                <div style="margin-top: auto; font-weight: 700; color: var(--accent-primary); font-size:1.1rem;">
-                    ${product.priceFormatted}
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
+
+    window.toggleOtherSellers = (uid) => {
+        const el = document.getElementById(`others-${uid}`);
+        if(el) el.classList.toggle('hidden');
+    };
 
     // (Reset Button listeners are handled above)
 
