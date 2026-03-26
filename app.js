@@ -479,22 +479,30 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.modalSearch = async function(keyword) {
+        if (!keyword) return;
         modalSearchResults.innerHTML = '<div style="padding:2rem; text-align:center;"><div class="loading-spinner"></div></div>';
         
         try {
             const response = await fetch(`/api/searchProducts?keyword=${encodeURIComponent(keyword)}&display=10`);
             const data = await response.json();
             
-            if (data.items && data.items.length > 0) {
-                window.modalProducts = data.items.map(item => ({
-                    uid: `m-${item.productId}`,
-                    name: item.title.replace(/<b>/g, '').replace(/<\/b>/g, ''),
-                    brand: item.brand || item.mallName,
-                    image: item.image,
-                    lprice: item.lprice,
-                    priceFormatted: parseInt(item.lprice).toLocaleString() + '원',
-                    link: item.link
-                }));
+            // data 자체가 없거나 items가 없을 경우 방어
+            if (data && data.items && Array.isArray(data.items) && data.items.length > 0) {
+                window.modalProducts = data.items.map(item => {
+                    // item.name 또는 item.title이 없을 경우를 대비해 빈 문자열 처리 및 replace 에러 방지
+                    const rawName = item.name || item.title || '';
+                    const cleanName = rawName.replace(/<b>/g, '').replace(/<\/b>/g, '');
+                    
+                    return {
+                        uid: `m-${item.id || item.productId || Math.random()}`,
+                        name: cleanName,
+                        brand: item.brand || item.mallName || '알 수 없음',
+                        image: item.image || '',
+                        lprice: item.lprice || 0,
+                        priceFormatted: (item.lprice ? parseInt(item.lprice).toLocaleString() : '0') + '원',
+                        link: item.link || '#'
+                    };
+                });
                 renderModalResults(window.modalProducts);
             } else {
                 modalSearchResults.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-secondary);">검색 결과가 없습니다.</div>';
