@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>비교 보관함 - Versus</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Whale 브라우저 등 강제 다크모드 방어용 고정 스타일 */
+        :root {
+            --bucket-bg: #f8f9fa;
+            --bucket-card: #ffffff;
+            --bucket-text: #212529;
+            --bucket-sub: #868e96;
+        }
+        
+        /* 다크모드 상태여도 이 페이지의 메인 컨텐츠는 밝게 유지 (사용자 요청) */
+        .bucket-page-force-light {
+            background-color: var(--bucket-bg) !important;
+            color: var(--bucket-text) !important;
+        }
+        
+        .bucket-page-force-light .glass-panel {
+            background: var(--bucket-card) !important;
+            border: 1px solid #eee !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;
+        }
+        
+        .bucket-card {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.25rem;
+            background: var(--bucket-card);
+            border-radius: 20px;
+            border: 1px solid #f1f3f5;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--bucket-text);
+        }
+        
+        .bucket-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: var(--accent-primary);
+        }
+        
+        .thumb-stack {
+            display: flex;
+            align-items: center;
+            position: relative;
+            width: 80px;
+            height: 60px;
+        }
+        
+        .thumb-stack img {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .thumb-stack img:nth-child(2) {
+            position: absolute;
+            left: 25px;
+            z-index: 1;
+        }
+        
+        .bucket-info {
+            flex: 1;
+        }
+        
+        .bucket-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+            color: #212529;
+        }
+        
+        .bucket-date {
+            font-size: 0.85rem;
+            color: #868e96;
+        }
+    </style>
+</head>
+<body class="bucket-page-force-light">
+    <div class="bg-shape bg-shape-1" style="opacity: 0.1;"></div>
+
+    <header class="glass-header">
+        <div class="container header-container">
+            <a href="index.html" class="logo">
+                <i data-lucide="layers" class="logo-icon"></i>
+                <span>Versus</span>
+            </a>
+            <nav class="nav-links">
+                <a href="index.html">제품 비교</a>
+                <a href="bucket.html" class="active">비교 보관함</a>
+                <a href="guide.html">AI 쇼핑 가이드</a>
+                <a href="community.html">커뮤니티</a>
+            </nav>
+            <div class="auth-wrapper">
+                <button class="btn btn-primary" onclick="window.location.href='index.html'">메인으로</button>
+            </div>
+            <button id="themeToggle" class="theme-toggle" title="테마 변경">
+                <i data-lucide="sun" class="sun-icon"></i>
+                <i data-lucide="moon" class="moon-icon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container" style="min-height: 80vh; padding: 3rem 0;">
+        <div style="max-width: 800px; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <div style="background: var(--accent-primary); color: white; width: 60px; height: 60px; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i data-lucide="briefcase" style="width: 32px; height: 32px;"></i>
+                </div>
+                <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; color: #212529;">비교 보관함</h1>
+                <p style="color: #495057;">과거에 내가 고민했던 매치업들을 다시 확인해보세요.</p>
+            </div>
+
+            <div id="bucketList">
+                <!-- Data will be loaded here -->
+                <div style="text-align: center; padding: 4rem; color: #868e96;">
+                    <i data-lucide="loader-2" class="spin" style="margin-bottom: 1rem;"></i>
+                    <p>보관된 데이터를 불러오고 있습니다...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="glass-footer">
+        <div class="container footer-content">
+            <div class="footer-logo">
+                <i data-lucide="layers"></i>
+                <span>Versus</span>
+            </div>
+            <p class="copyright">&copy; 2026 Versus. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="bucket.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

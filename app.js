@@ -146,16 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectionArea = document.getElementById('selectionArea');
     const productGrid = document.getElementById('productGrid');
     const comparisonView = document.getElementById('comparisonView');
+    // const comparisonView = document.getElementById('comparisonView'); // Removed as per instruction
     const resetBtn = document.getElementById('resetBtn');
     
     const tags = document.querySelectorAll('.tag');
     const categoryCards = document.querySelectorAll('.category-card'); // V2 Cards
     
     // Elements to populate during comparison
-    const baseProductCard = document.getElementById('baseProductCard');
-    const competitorsWrapper = document.getElementById('competitorsWrapper');
-    const specsTable = document.getElementById('specsTable');
-    const googleLoginBtn = document.getElementById('googleLoginBtn');
     const authWrapper = document.getElementById('authWrapper');
 
     // --- State ---
@@ -222,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // 비교 화면이 열려있다면 닫고 그리드로 뷰포트 이동
-        comparisonView.classList.add('hidden');
+        // comparisonView.classList.add('hidden');
         selectionArea.classList.remove('hidden');
         
         searchDynamicProducts(query);
@@ -369,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // UI 상태 전환: 검색 결과창 노출, 기존 비교창 숨김
-        comparisonView.classList.add('hidden');
+        // comparisonView.classList.add('hidden');
         selectionArea.classList.remove('hidden');
 
         selectionArea.scrollIntoView({ behavior: 'smooth' });
@@ -454,21 +451,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 url: product.link,
                 specs: parseSpecs(product.name, product.brand)
             };
-            // 2단계 상품 지명 후 모달 닫기
             if (isModal) searchModal.classList.add('hidden');
+
+            // 두 상품 선택 시 데이터 저장 후 compare.html로 이동
+            const matchup = { base: fixedProduct, competitor: competitorProduct };
+            localStorage.setItem('currentMatchup', JSON.stringify(matchup));
+            window.location.href = 'compare.html';
+            return;
         }
         else {
             showPremiumPopup();
             return;
         }
 
-        // UI 전환: 선택 화면 숨기고 비교 화면 노출
-        selectionArea.classList.add('hidden');
-        comparisonView.classList.remove('hidden');
-
-        // 스크롤 이동 전 렌더링
-        renderComparison();
+        // 1단계 선택 시 UI 피드백 (선택창 유지)
+        renderSelectionState();
     };
+
+    function renderSelectionState() {
+        if (fixedProduct) {
+            searchInput.placeholder = `${fixedProduct.name} 와(과) 비교할 다른 상품을 검색하세요.`;
+            searchInput.value = '';
+        }
+    }
 
     // --- Modal Search Functions ---
     window.openSearchModal = () => {
@@ -554,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function hideComparison() {
-        comparisonView.classList.add('hidden');
+        // comparisonView 가 index.html에서 제거됨
     }
 
     function groupProducts(products) {

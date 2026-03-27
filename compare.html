@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제품 상세 비교 - Versus</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="compare-page">
+    <div class="bg-shape bg-shape-1"></div>
+    <div class="bg-shape bg-shape-2"></div>
+
+    <header class="glass-header">
+        <div class="container header-container">
+            <a href="index.html" class="logo">
+                <i data-lucide="layers" class="logo-icon"></i>
+                <span>Versus</span>
+            </a>
+            <nav class="nav-links">
+                <a href="index.html">제품 비교</a>
+                <a href="bucket.html">비교 보관함</a>
+                <a href="guide.html">AI 쇼핑 가이드</a>
+                <a href="community.html">커뮤니티</a>
+            </nav>
+            <div class="auth-wrapper" id="authWrapper">
+                <button class="btn btn-primary" onclick="window.location.href='index.html'">메인으로</button>
+            </div>
+            <button id="themeToggle" class="theme-toggle" title="테마 변경">
+                <i data-lucide="sun" class="sun-icon"></i>
+                <i data-lucide="moon" class="moon-icon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="comparison-view" id="comparisonView" style="margin-top: 2rem; display: block;">
+            <div class="save-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <button class="btn btn-outline" onclick="window.location.href='index.html'">
+                    <i data-lucide="arrow-left"></i> 뒤로가기
+                </button>
+                <button class="btn btn-shiny" id="saveComparisonBtn">
+                    <i data-lucide="bookmark"></i> 현재 비교 저장하기
+                </button>
+            </div>
+
+            <div class="comparison-container glass-panel">
+                <div class="compare-header" id="compareHeader">
+                    <div class="compare-card" id="baseProductCard"></div>
+                    <div class="vs-badge">VS</div>
+                    <div class="compare-card" id="competitorSlot"></div>
+                </div>
+
+                <div class="specs-table-container">
+                    <table class="specs-table" id="specsTable"></table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast" class="toast hidden">보관함에 저장되었습니다!</div>
+
+    <footer class="glass-footer">
+        <div class="container footer-content">
+            <div class="footer-logo">
+                <i data-lucide="layers"></i>
+                <span>Versus</span>
+            </div>
+            <p class="copyright">&copy; 2026 Versus. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="compare.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
