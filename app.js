@@ -24,8 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const queryCategory = keyword ? 'all' : currentCategory;
         
         productGrid.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p>최저가 정보를 가져오는 중...</p></div>';
-        welcomeSection.classList.add('hidden');
-        selectionArea.classList.remove('hidden');
+        
+        // Safety check for welcomeSection
+        if (welcomeSection) {
+            welcomeSection.classList.add('hidden');
+        }
+        
+        if (selectionArea) {
+            selectionArea.classList.remove('hidden');
+        }
 
         try {
             const url = `/api/searchProducts?category=${queryCategory}&keyword=${encodeURIComponent(keyword)}`;
@@ -121,12 +128,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Category Card Clicks (V2 support)
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', () => {
+            currentCategory = card.dataset.category;
+            searchInput.value = '';
+            performSearch();
+        });
+    });
+
     searchBtn.addEventListener('click', performSearch);
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') performSearch();
     });
 
-    resetBtn.addEventListener('click', () => location.reload());
+    if(resetBtn) {
+        resetBtn.addEventListener('click', () => location.reload());
+    }
 
     // --- Core Interaction: One-Click Redirect ---
     window.selectProduct = async function(uid, isModal = false) {
@@ -136,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const baseProduct = {
             id: product.uid,
-            name: product.name,
+            name: (product.name || "").replace(/<b>/g, '').replace(/<\/b>/g, ''),
             brand: product.brand,
             image: product.image,
             price: product.priceFormatted,
@@ -146,20 +164,30 @@ document.addEventListener('DOMContentLoaded', () => {
             specs: parseSpecs(product.name, product.brand)
         };
 
+        const currentMatchup = JSON.parse(localStorage.getItem('currentMatchup')) || { base: null, competitor: null };
+        
+        // If we are selecting a competitor from a modal in compare.html, this part usually wouldn't be called from app.js,
+        // but for safety, we handle it.
         const matchup = { base: baseProduct, competitor: null };
         localStorage.setItem('currentMatchup', JSON.stringify(matchup));
         
-        if (isModal) searchModal.classList.add('hidden');
+        if (isModal && searchModal) searchModal.classList.add('hidden');
         window.location.href = 'compare.html';
     };
 
     // --- Modal Search Functions ---
     window.openSearchModal = () => {
-        searchModal.classList.remove('hidden');
-        modalSearchInput.focus();
+        if(searchModal) {
+            searchModal.classList.remove('hidden');
+            modalSearchInput.focus();
+        }
     };
 
-    closeSearchModal.addEventListener('click', () => searchModal.classList.add('hidden'));
+    if(closeSearchModal) {
+        closeSearchModal.addEventListener('click', () => {
+            searchModal.classList.add('hidden');
+        });
+    }
 
     window.modalSearch = async (keyword) => {
         if (!keyword) return;
@@ -170,9 +198,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             
             if (data.items && data.items.length > 0) {
-                // Modal Search Average
                 const prices = data.items.map(i => parseInt(i.lprice) || 0).filter(p => p > 0);
-                const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+                const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
 
                 window.modalProducts = data.items.map(item => {
                     const lprice = parseInt(item.lprice) || 0;
@@ -185,13 +212,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         priceVal: lprice,
                         priceFormatted: lprice.toLocaleString() + '원',
                         link: item.link,
-                        isPriceCaution: lprice < (avgPrice * 0.5)
+                        isPriceCaution: avgPrice > 0 && lprice < (avgPrice * 0.5)
                     };
                 });
                 
                 modalSearchResults.innerHTML = window.modalProducts.map(p => `
                     <div class="modal-result-card" onclick="window.selectProduct('${p.uid}', true)" style="position:relative;">
-                        ${p.isPriceCaution ? `<div class="price-caution" style="transform: scale(0.8); top: -5px; right: -5px;"><i data-lucide="alert-triangle" style="width:10px; height:10px;"></i> 가격 주의</div>` : ''}
+                        ${p.isPriceCaution ? `<div class="price-caution" style="transform: scale(0.7); top: -5px; right: -5px;"><i data-lucide="alert-triangle" style="width:10px; height:10px;"></i> 가격 주의</div>` : ''}
                         <img src="${p.image}" alt="${p.name}">
                         <div class="info">
                             <div class="name">${p.name}</div>
@@ -208,17 +235,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let typingTimer;
-    modalSearchInput.addEventListener('input', (e) => {
-        clearTimeout(typingTimer);
-        typingTimer = setTimeout(() => window.modalSearch(e.target.value), 500);
-    });
-
-    function showPremiumPopup() {
-        premiumModal.classList.remove('hidden');
+    if(modalSearchInput) {
+        let typingTimer;
+        modalSearchInput.addEventListener('input', (e) => {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => window.modalSearch(e.target.value), 500);
+        });
     }
 
-    closePremiumModal.addEventListener('click', () => premiumModal.classList.add('hidden'));
+    if(closePremiumModal) {
+        closePremiumModal.addEventListener('click', () => {
+            premiumModal.classList.add('hidden');
+        });
+    }
 
     window.addEventListener('click', (e) => {
         if (e.target === searchModal) searchModal.classList.add('hidden');

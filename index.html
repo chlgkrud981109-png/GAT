@@ -47,7 +47,7 @@
     <!-- Main Content -->
     <main class="container">
         <!-- Hero Section -->
-        <section class="hero-section">
+        <section class="hero-section" id="welcomeSection">
             <h1 class="gradient-text" style="font-size:3rem; line-height:1.3;">Versus에서 <br><span id="dynamicKeyword" style="color:var(--accent-primary); transition:opacity 0.4s;">아이폰 16</span><br>찾고 계신가요?</h1>
             <p class="subtitle">이웃들이 가장 많이 찾는 제품들을 한눈에 쉽게 비교해보세요.</p>
             
@@ -128,7 +128,6 @@
             </div>
         </section>
 
-        <!-- Comparison View (Hidden initially) -->
         <!-- Comparison View: Moved to compare.html -->
     </main>
 
@@ -193,37 +192,20 @@
         // Initialize Lucide icons
         lucide.createIcons();
         
-        // ----------------------------------------------------
-        // [FIREBASE 보안 환경 변수 연동 블록]
-        // 하드코딩된 키를 모두 삭제하고 Cloudflare 함수(/api/getConfig)를 통해
-        // 대시보드 환경 변수들을 안전하게 가져와 초기화합니다.
-        // ----------------------------------------------------
+        // --- Firebase Auto-Init (Securely) ---
         async function initFirebaseSecurely() {
             try {
                 const response = await fetch('/api/getConfig');
-                if (!response.ok) {
-                    console.warn("⚠️ Firebase 설정 파일 로드 실패 (현재 환경이 로컬 file:// 이거나 API 에러입니다.)");
-                    return;
-                }
-                
+                if (!response.ok) return;
                 const firebaseConfig = await response.json();
-                
-                // 유효한 키값이 도착했다면 Firebase 초기화 진행
                 if (firebaseConfig.apiKey) {
                     firebase.initializeApp(firebaseConfig);
                     window.db = firebase.firestore();
                     window.auth = firebase.auth();
-                    
-                    // app.js 에게 Firebase가 성공적으로 켜졌음을 알림!
                     window.dispatchEvent(new Event('firebaseReady'));
-                    console.log("🔥 Firebase가 안전한 환경 변수를 통해 초기화되었습니다.");
                 }
-            } catch (error) {
-                 console.warn("Firebase 우회 통신 대기 중...", error);
-            }
+            } catch (error) {}
         }
-        
-        // 함수 실행
         initFirebaseSecurely();
     </script>
 </body>
