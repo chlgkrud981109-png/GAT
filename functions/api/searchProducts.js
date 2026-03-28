@@ -39,6 +39,9 @@ export async function onRequest(context) {
     const clientId = env.NAVER_CLIENT_ID;
     const clientSecret = env.NAVER_CLIENT_SECRET;
 
+    // Cloudflare Pages 환경 변수 로드 확인 로그 추가
+    console.log(`[AUTH CHECK] clientId: ${clientId ? 'LOADED' : 'MISSING'}, clientSecret: ${clientSecret ? 'LOADED' : 'MISSING'}`);
+
     if (!clientId) {
       return new Response(JSON.stringify({ 
         success: false,
@@ -98,11 +101,19 @@ export async function onRequest(context) {
       link: item.link,
       category: `${item.category1} > ${item.category2} > ${item.category3}`,
       productType: item.productType, // 1: 가격비교(Cluster), 2: 최저가몰, 3: 일반상품 등
-      mallName: item.mallName,
       // For Item Winner logic simulation (since basic API might lack these, we generate realistic ones based on grouping)
       reviewCount: Math.floor(Math.random() * 500) + 10,
       rating: (Math.random() * (5.0 - 3.5) + 3.5).toFixed(1)
     }));
+
+    function groupProducts(items, globalAvg) {
+        if (!items || items.length === 0) return []; // Early Return: 데이터가 없을 경우 빈 배열 반환
+        
+        const groups = {};
+        items.forEach(item => {
+            // grouping logic
+        });
+    }
 
     return new Response(JSON.stringify({
       success: true,
