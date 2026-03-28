@@ -94,5 +94,55 @@
 
     <script src="compare.js"></script>
     <script>lucide.createIcons();</script>
+
+    <!-- Mobile Tab Bar -->
+    <div class="mobile-tab-bar" style="display: none;">
+        <a href="index.html" class="mobile-tab-item active">
+            <i data-lucide="layers"></i>
+            비교
+        </a>
+        <a href="bucket.html" class="mobile-tab-item">
+            <i data-lucide="archive"></i>
+            보관함
+        </a>
+        <a href="guide.html" class="mobile-tab-item">
+            <i data-lucide="sparkles"></i>
+            가이드
+        </a>
+        <a href="community.html" class="mobile-tab-item">
+            <i data-lucide="message-square"></i>
+            커뮤니티
+        </a>
+    </div>
+
+    <!-- Mobile Fixed Back Button -->
+    <button class="mobile-back-btn" onclick="window.location.href='index.html'" style="display: none;">
+        <i data-lucide="arrow-left"></i>
+    </button>
+    
+    <style>
+        @media (max-width: 768px) {
+            .mobile-tab-bar { display: flex !important; }
+            .mobile-back-btn { display: flex !important; }
+            .save-bar { display: none !important; } /* Hide desktop save bar on mobile to avoid clutter */
+        }
+        .mobile-back-btn {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 9000;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+        }
+    </style>
 </body>
 </html>

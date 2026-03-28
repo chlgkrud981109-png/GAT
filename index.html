@@ -32,7 +32,8 @@
                 <a href="guide.html">AI 쇼핑 가이드</a>
                 <a href="community.html">커뮤니티</a>
             </nav>
-            <div class="auth-wrapper" id="authWrapper">
+            <div style="flex-grow: 1;"></div>
+            <div class="auth-wrapper" id="authWrapper" style="margin-right: 1rem;">
                 <button class="btn btn-primary" id="googleLoginBtn">
                     <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> 구글 로그인
                 </button>
@@ -49,11 +50,11 @@
         <!-- Hero Section -->
         <section class="hero-section" id="welcomeSection">
             <h1 class="gradient-text" style="font-size:3rem; line-height:1.3;">Versus에서 <br><span id="dynamicKeyword" style="color:var(--accent-primary); transition:opacity 0.4s;">아이폰 16</span><br>찾고 계신가요?</h1>
-            <p class="subtitle">이웃들이 가장 많이 찾는 제품들을 한눈에 쉽게 비교해보세요.</p>
+            <p class="subtitle">가장 많이 찾는 제품들을 한눈에 쉽게 비교해보세요.</p>
             
             <div class="search-container glass-panel">
                 <i data-lucide="search" class="search-icon"></i>
-                <input type="text" id="searchInput" placeholder="비교할 제품명 또는 카테고리를 입력하세요 (예: 스마트폰, 노트북...)" autocomplete="off">
+                <input type="text" id="searchInput" placeholder="비교할 제품을 검색하세요." autocomplete="off">
                 <button class="btn btn-primary" id="searchBtn">검색</button>
                 
                 <!-- Search Results Dropdown -->
@@ -208,5 +209,31 @@
         }
         initFirebaseSecurely();
     </script>
+
+    <!-- Mobile Tab Bar (Visible only on max-width 768px via CSS, functionally hidden on desktop) -->
+    <div class="mobile-tab-bar" style="display: none;">
+        <a href="index.html" class="mobile-tab-item active">
+            <i data-lucide="layers"></i>
+            비교
+        </a>
+        <a href="bucket.html" class="mobile-tab-item">
+            <i data-lucide="archive"></i>
+            보관함
+        </a>
+        <a href="guide.html" class="mobile-tab-item">
+            <i data-lucide="sparkles"></i>
+            가이드
+        </a>
+        <a href="community.html" class="mobile-tab-item">
+            <i data-lucide="message-square"></i>
+            커뮤니티
+        </a>
+    </div>
+    
+    <style>
+        @media (max-width: 768px) {
+            .mobile-tab-bar { display: flex !important; }
+        }
+    </style>
 </body>
 </html>

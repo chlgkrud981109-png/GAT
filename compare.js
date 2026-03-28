@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const onImgError = "this.onerror=null;this.src='https://images.placeholder.com/400x400?text=No+Image';";
 
         // Render Base
-        const baseTitle = (base.name || (base.title || "")).replace(/<b>/g, '').replace(/<\/b>/g, '');
+        const baseTitle = base.name || (base.rawName || base.title || "").replace(/<b>/g, '').replace(/<\/b>/g, '');
         baseProductCard.innerHTML = `
             <div style="position:relative; width:100%;">
                 ${getBadgeHtml(base)}
@@ -39,7 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="compare-brand">${base.brand || '알 수 없음'}</div>
                 <div class="compare-title">${baseTitle}</div>
                 <div class="compare-price">${base.price || '정보 없음'}</div>
-                <button class="btn btn-primary" onclick="window.open('${base.url}', '_blank')">최저가 방문</button>
+                <div style="display:flex; gap:0.5rem; justify-content:center; width:100%;">
+                    <button class="btn btn-primary" style="flex:1; padding:0.8rem 1rem;" onclick="window.open('${base.url}', '_blank')">최저가 방문</button>
+                    <!-- Empty placeholder to match competitor's grid -->
+                    <div style="width:45px; display:none;"></div>
+                </div>
             </div>
         `;
 
@@ -52,9 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="btn btn-outline" style="margin-top:1rem; pointer-events:none;">상품 추가</button>
                 </div>
             `;
-            specsTable.innerHTML = `<tbody><tr class="category-row"><th colspan="3">1:1 라이벌 명세 대조</th></tr><tr><td colspan="3" style="text-align:center; padding:3rem; color:var(--text-secondary);">비교할 두 번째 제품을 추가하면<br>상세 명세 분석표가 나타납니다.</td></tr></tbody>`;
+            specsTable.innerHTML = `<tbody><tr class="category-row"><th colspan="3">제품 상세 비교표</th></tr><tr><td colspan="3" style="text-align:center; padding:3rem; color:var(--text-secondary);">비교할 두 번째 제품을 추가하면<br>상세 명세 분석표가 나타납니다.</td></tr></tbody>`;
         } else {
-            const compTitle = (competitor.name || (competitor.title || "")).replace(/<b>/g, '').replace(/<\/b>/g, '');
+            const compTitle = competitor.name || (competitor.rawName || competitor.title || "").replace(/<b>/g, '').replace(/<\/b>/g, '');
             competitorSlot.innerHTML = `
                 <div style="position:relative; width:100%;">
                     ${getBadgeHtml(competitor)}
@@ -62,9 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="compare-brand">${competitor.brand || '알 수 없음'}</div>
                     <div class="compare-title">${compTitle}</div>
                     <div class="compare-price">${competitor.price || '정보 없음'}</div>
-                    <div style="display:flex; gap:0.5rem;">
-                        <button class="btn btn-shiny" style="flex:1;" onclick="window.open('${competitor.url}', '_blank')">최저가 방문</button>
-                        <button class="btn btn-outline" style="width:45px;" onclick="window.openSearchModal()" title="다른 상품과 비교">
+                    <div style="display:flex; gap:0.5rem; justify-content:center; width:100%;">
+                        <button class="btn btn-shiny" style="flex:1; padding:0.8rem 1rem;" onclick="window.open('${competitor.url}', '_blank')">최저가 방문</button>
+                        <button class="btn btn-outline" style="width:45px; padding:0.8rem 0;" onclick="window.openSearchModal()" title="다른 상품과 비교">
                             <i data-lucide="refresh-cw"></i>
                         </button>
                     </div>
@@ -81,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 '쇼핑몰': '판매처'
             };
 
-            let tableHTML = `<tbody><tr class="category-row"><th colspan="3">1:1 라이벌 명세 대조</th></tr>`;
+            let tableHTML = `<tbody><tr class="category-row"><th colspan="3">제품 상세 비교표</th></tr>`;
             specKeys.forEach(key => {
                 const bVal = base.specs ? (base.specs[key] || '-') : '-';
                 const cVal = competitor.specs ? (competitor.specs[key] || '-') : '-';
@@ -116,7 +120,15 @@ document.addEventListener('DOMContentLoaded', () => {
         modalSearchInput.focus();
     };
 
-    closeSearchModal.onclick = () => searchModal.classList.add('hidden');
+    closeSearchModal.onclick = (e) => {
+        e.stopPropagation();
+        searchModal.classList.add('hidden');
+    }
+
+    // Modal bubbling fix
+    if (searchModal) {
+        searchModal.querySelector('.modal-content').addEventListener('click', e => e.stopPropagation());
+    }
 
     let typingTimer;
     modalSearchInput.oninput = (e) => {
@@ -141,10 +153,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     const lprice = parseInt(item.lprice) || 0;
                     const rawName = item.name || (item.title || "");
                     const cleanName = rawName.replace(/<b>/g, '').replace(/<\/b>/g, '').trim();
+                    
+                    let parsedName = cleanName.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
+                    const words = parsedName.split(/\s+/);
+                    if(words.length > 5) {
+                       parsedName = words.slice(0, 5).join(' ') + '...';
+                    }
+
                     return {
                         uid: `m-${Date.now()}-${Math.random()}`,
-                        name: cleanName,
+                        name: parsedName,
+                        rawName: cleanName,
                         brand: item.brand || item.mallName || '알 수 없음',
+                        category: item.category || '',
                         image: item.image || '',
                         lprice: lprice,
                         priceFormatted: lprice.toLocaleString() + '원',
@@ -181,16 +202,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const product = (window.modalProducts || []).find(p => p.uid === uid);
         if(!product) return;
 
+        const baseCategory = matchup.base ? matchup.base.category : '';
+        const compCategory = product.category || '';
+
+        // Category Validation logic (Simple match of the first category level)
+        if (baseCategory && compCategory) {
+            const baseCatMain = baseCategory.split('>')[0].trim();
+            const compCatMain = compCategory.split('>')[0].trim();
+            if (baseCatMain !== compCatMain) {
+                alert("같은 카테고리의 상품이 아니므로 비교하기 어렵습니다. 다시 검색해주세요.");
+                modalSearchInput.value = '';
+                modalSearchResults.innerHTML = '<div class="empty-state" style="padding: 2rem;"><p style="color: var(--text-secondary);">비교할 제품명을 입력하세요.</p></div>';
+                return;
+            }
+        }
+
         matchup.competitor = {
             id: product.uid,
             name: product.name,
+            rawName: product.rawName || product.name,
             brand: product.brand,
+            category: product.category,
             image: product.image,
             price: product.priceFormatted,
             priceVal: product.lprice,
             url: product.link,
             isPriceCaution: product.isPriceCaution,
-            specs: parseSpecs(product.name, product.brand)
+            specs: parseSpecs(product.rawName || product.name, product.brand)
         };
 
         localStorage.setItem('currentMatchup', JSON.stringify(matchup));

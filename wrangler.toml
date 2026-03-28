@@ -1,0 +1,11 @@
+name = "versus-product-compare"
+compatibility_date = "2024-03-20"
+pages_build_output_dir = "."
+
+[env.production.vars]
+# API keys are configured via Cloudflare Dashboard Settings
+# NAVER_CLIENT_ID
+# NAVER_CLIENT_SECRET
+# FIREBASE_API_KEY
+# FIREBASE_AUTH_DOMAIN
+# FIREBASE_PROJECT_ID

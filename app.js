@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const welcomeSection = document.getElementById('welcomeSection');
     const selectionArea = document.getElementById('selectionArea');
     const resetBtn = document.getElementById('resetBtn');
+    const dynamicKeyword = document.getElementById('dynamicKeyword');
 
     // Modal elements
     const searchModal = document.getElementById('searchModal');
@@ -14,6 +15,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSearchModal = document.getElementById('closeSearchModal');
     const premiumModal = document.getElementById('premiumModal');
     const closePremiumModal = document.getElementById('closePremiumModal');
+
+    // Add back button to selection area dynamically if not exists
+    if (selectionArea) {
+        const header = selectionArea.querySelector('.section-header');
+        if (header && !document.getElementById('backToMainBtn')) {
+            const backBtn = document.createElement('button');
+            backBtn.id = 'backToMainBtn';
+            backBtn.className = 'btn btn-icon btn-outline';
+            backBtn.style.marginRight = '1rem';
+            backBtn.innerHTML = '<i data-lucide="arrow-left"></i> 뒤로가기';
+            backBtn.addEventListener('click', () => {
+                selectionArea.classList.add('hidden');
+                if (welcomeSection) welcomeSection.classList.remove('hidden');
+                searchInput.value = '';
+                productGrid.innerHTML = '';
+            });
+            header.insertBefore(backBtn, header.firstChild);
+        }
+    }
 
     let currentCategory = 'all';
     let dynamicProducts = [];
@@ -59,9 +79,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function groupProducts(items, globalAvg) {
         const groups = {};
         items.forEach(item => {
-            const rawTitle = item.title || "";
-            const cleanTitle = rawTitle.replace(/<b>/g, '').replace(/<\/b>/g, '').trim();
-            const groupKey = cleanTitle.split(' ').slice(0, 3).join(' ');
+            const rawTitle = item.name || item.title || "";
+            // Phase 3 Data Parsing: Keep only Brand + Model name by taking the first 2-3 significant words 
+            // and removing extraneous promotional text in brackets etc.
+            let cleanTitle = rawTitle.replace(/<b>/g, '').replace(/<\/b>/g, '')
+                                     .replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
+            
+            // Group by the first 2-3 significant words to cluster similar products from different sellers.
+            const words = cleanTitle.split(/\s+/);
+            const groupKey = words.slice(0, Math.min(words.length, 3)).join(' ');
             
             if (!groups[groupKey]) {
                 groups[groupKey] = [];
@@ -70,47 +96,85 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         return Object.values(groups).map(group => {
+            // Antigravity Item Winner Logic:
+            // Calculate a score for each item to pick the reliable 'Winner' representative for the group.
+            // Score = (1 / Price * 1000) + (ReviewCount * 0.5) + (Rating * 10)
+            const getScore = (item) => {
+                const price = parseInt(item.lprice) || Infinity;
+                if (price === Infinity) return -1;
+                const reviews = parseInt(item.reviewCount) || 0;
+                const rating = parseFloat(item.rating) || 0;
+                return (1000000 / price) + (reviews * 0.5) + (rating * 10);
+            };
+
             const winner = group.reduce((prev, curr) => {
+                return getScore(curr) > getScore(prev) ? curr : prev;
+            });
+
+            // Find absolute lowest price in group for display purposes, even if it's not the winner
+            const lowestPriceItem = group.reduce((prev, curr) => {
                 const prevPrice = parseInt(prev.lprice) || Infinity;
                 const currPrice = parseInt(curr.lprice) || Infinity;
                 return currPrice < prevPrice ? curr : prev;
             });
 
-            const lprice = parseInt(winner.lprice) || 0;
-            // Price Caution: If price is less than 50% of the global average for this search
-            const isCaution = globalAvg > 0 && lprice < (globalAvg * 0.5);
+            const lprice = parseInt(lowestPriceItem.lprice) || 0;
+            // Price Caution: If lowest price is suspiciously lower than the winner's or global average
+            const winnerPrice = parseInt(winner.lprice) || 0;
+            const isCaution = (globalAvg > 0 && lprice < (globalAvg * 0.5)) || (lprice < winnerPrice * 0.6);
+
+            // Parse title for cleaner display
+            const rawWinnerTitle = (winner.name || winner.title || "").replace(/<b>/g, '').replace(/<\/b>/g, '');
+            let parsedName = rawWinnerTitle.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
+            const words = parsedName.split(/\s+/);
+            // If the name is too long, try to truncate to sensible brand + product name
+            if(words.length > 5) {
+               parsedName = words.slice(0, 5).join(' ') + '...';
+            }
 
             return {
-                uid: winner.productId || Math.random().toString(36).substr(2, 9),
-                name: (winner.title || "").replace(/<b>/g, '').replace(/<\/b>/g, ''),
-                brand: winner.brand || winner.mallName || '브랜드 정보 없음',
+                uid: winner.id || winner.productId || Math.random().toString(36).substr(2, 9),
+                name: parsedName,
+                rawName: rawWinnerTitle, // Keep raw if needed for specs
+                brand: winner.brand || winner.maker || '브랜드 정보 없음',
+                category: winner.category || '',
                 image: winner.image,
-                lprice: winner.lprice,
+                lprice: lprice, // Show lowest price found in group
                 priceVal: lprice,
                 priceFormatted: lprice.toLocaleString() + '원',
-                link: winner.link,
+                link: winner.link, // Lead to winner's link
                 isPriceCaution: isCaution,
+                rating: winner.rating || '0.0',
+                reviewCount: winner.reviewCount || 0,
                 allSellers: group.length > 1 ? group.map(s => ({
                     mallName: s.mallName,
-                    price: s.lprice,
+                    price: parseInt(s.lprice) || Infinity,
                     link: s.link
-                })) : null
+                })).sort((a,b) => a.price - b.price) : null
             };
         });
     }
 
     const renderProducts = (products) => {
         productGrid.innerHTML = products.map(product => `
-            <div class="product-card glass-panel" onclick="window.selectProduct('${product.uid}')">
-                ${product.isPriceCaution ? `<div class="price-caution" style="top:5px; right:5px;"><i data-lucide="alert-triangle" style="width:12px; height:12px;"></i> 가격 주의</div>` : ''}
-                <div class="product-image-wrapper">
-                    <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/200'">
+            <div class="product-card-list" onclick="window.selectProduct('${product.uid}')">
+                ${product.isPriceCaution ? `<div class="price-caution" style="position:absolute; top:1rem; right:1rem;"><i data-lucide="alert-triangle" style="width:12px; height:12px;"></i> 가격 주의</div>` : ''}
+                <div class="product-image-wrap">
+                    <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/100'">
                 </div>
-                <div class="product-info">
+                <div class="product-info" style="flex:1; padding-right: 2rem;">
                     <div class="product-brand">${product.brand}</div>
-                    <h3 class="product-name">${product.name}</h3>
-                    <div class="product-price">${product.priceFormatted}</div>
-                    ${product.allSellers ? `<div class="seller-badge">외 ${product.allSellers.length}개 판매처</div>` : ''}
+                    <h3 class="product-name" style="margin-bottom:0.25rem;">${product.name}</h3>
+                    <div class="product-price" style="font-size:1.2rem;">${product.priceFormatted} <span style="font-size:0.8rem; color:var(--text-secondary); font-weight:normal;">최저가</span></div>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; font-size:0.85rem; color:var(--text-secondary);">
+                        <div style="display:flex; align-items:center; gap:0.25rem;">
+                            <i data-lucide="star" style="width:14px; height:14px; color:gold; fill:gold;"></i>
+                            <span>${product.rating}</span>
+                            <span>(${product.reviewCount})</span>
+                        </div>
+                        ${product.allSellers ? `<div class="seller-badge">묶음 ${product.allSellers.length}개 판매처</div>` : ''}
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -154,14 +218,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const baseProduct = {
             id: product.uid,
-            name: (product.name || "").replace(/<b>/g, '').replace(/<\/b>/g, ''),
+            name: product.name,
+            rawName: product.rawName || product.name,
             brand: product.brand,
+            category: product.category,
             image: product.image,
             price: product.priceFormatted,
             priceVal: product.priceVal || (parseInt(product.lprice) || 0),
             url: product.link,
             isPriceCaution: product.isPriceCaution || false,
-            specs: parseSpecs(product.name, product.brand)
+            specs: parseSpecs(product.rawName || product.name, product.brand)
         };
 
         const currentMatchup = JSON.parse(localStorage.getItem('currentMatchup')) || { base: null, competitor: null };
@@ -249,6 +315,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Fix event bubbling for modals
+    if (searchModal) {
+        searchModal.querySelector('.modal-content').addEventListener('click', e => e.stopPropagation());
+    }
+    if (premiumModal) {
+        premiumModal.querySelector('.modal-content').addEventListener('click', e => e.stopPropagation());
+    }
+
     window.addEventListener('click', (e) => {
         if (e.target === searchModal) searchModal.classList.add('hidden');
         if (e.target === premiumModal) premiumModal.classList.add('hidden');
@@ -263,6 +337,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (storageMatch) specs['저장용량'] = storageMatch[1].toUpperCase();
         if (lowerName.includes('5g')) specs['네트워크'] = '5G 지원';
         return specs;
+    }
+
+    // --- Dynamic Hero Keyword Animation ---
+    if (dynamicKeyword) {
+        const keywords = ["아이폰 16", "갤럭시 S24", "맥북 에어", "다이슨 청소기", "에어팟 프로"];
+        let keywordIndex = 0;
+
+        function animateKeyword() {
+            dynamicKeyword.style.opacity = 0;
+            
+            setTimeout(() => {
+                keywordIndex = (keywordIndex + 1) % keywords.length;
+                dynamicKeyword.textContent = keywords[keywordIndex];
+                dynamicKeyword.style.opacity = 1;
+            }, 400); // Wait for fade out to complete (0.4s matching CSS transition)
+        }
+
+        setInterval(animateKeyword, 3000); // 3 seconds interval
     }
 
     lucide.createIcons();
