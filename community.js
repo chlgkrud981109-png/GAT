@@ -9,63 +9,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentUser = null;
 
-    // 1. Firebase Initialization
-    async function initFirebase() {
-        try {
-            const response = await fetch('/api/getConfig');
-            if (!response.ok) throw new Error("API 연결 실패");
-            const config = await response.json();
-            
-            if (config.apiKey) {
-                firebase.initializeApp(config);
-                window.db = firebase.firestore();
-                window.auth = firebase.auth();
-                
-                setupAuthUI();
-                fetchReviews(); // 실시간 리스너 등록
-            }
-        } catch (error) {
-            console.error("Firebase 초기화 실패:", error);
-            reviewsList.innerHTML = '<div style="text-align:center; color:var(--error);">서버에 연결할 수 없습니다.</div>';
+    // 1. Listen for global Auth State
+    let reviewsFetched = false;
+    window.addEventListener('authStateChanged', (e) => {
+        currentUser = e.detail;
+        
+        if (currentUser) {
+            reviewForm.style.display = 'block';
+            loginPrompt.style.display = 'none';
+        } else {
+            reviewForm.style.display = 'none';
+            loginPrompt.style.display = 'block';
         }
-    }
-
-    // 2. Auth State Observer
-    function setupAuthUI() {
-        auth.onAuthStateChanged(user => {
-            currentUser = user;
-            
-            if (user) {
-                // Header UI Update
-                authWrapper.innerHTML = `
-                    <div class="user-profile" style="position:relative; display:flex; align-items:center; gap:0.5rem; cursor:pointer;" onclick="var menu = document.getElementById('logoutMenu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none';">
-                        <img src="${user.photoURL || 'https://placehold.co/150x150?text=Profile'}" alt="Profile" style="width:32px; height:32px; border-radius:50%;" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'V')}&background=random';">
-                        <span style="color:var(--text); font-weight:500;">${user.displayName}</span>
-                        <div id="logoutMenu" style="display:none; position:absolute; top:110%; right:0; background:var(--bg-surface); padding:0.5rem; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); border:1px solid var(--glass-border); min-width:140px; z-index:1000;">
-                            <button onclick="window.auth.signOut().then(()=>window.location.reload())" style="width:100%; text-align:left; padding:0.5rem; font-size:0.9rem; color:var(--accent-danger); border-radius:4px; display:inline-flex; align-items:center;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> 
-                                로그아웃
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                // Form UI Update
-                reviewForm.style.display = 'block';
-                loginPrompt.style.display = 'none';
-            } else {
-                // Header UI Update
-                authWrapper.innerHTML = `
-                    <button class="btn btn-primary" onclick="window.location.href='index.html'">로그인하러 가기</button>
-                `;
-                
-                // Form UI Update
-                reviewForm.style.display = 'none';
-                loginPrompt.style.display = 'block';
-            }
-            lucide.createIcons();
-        });
-    }
+        
+        if (window.db && !reviewsFetched) {
+            fetchReviews();
+            reviewsFetched = true;
+        }
+    });
 
     // 3. Review Submit Logic
     submitReviewBtn.addEventListener('click', async () => {
@@ -175,5 +136,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    initFirebase();
+    // Optional check for direct db attachment
+    if (window.db && !reviewsFetched) {
+        fetchReviews();
+        reviewsFetched = true;
+    }
 });

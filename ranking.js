@@ -1,23 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Firebase Initialization via Secure Endpoint
-    async function initFirebase() {
-        try {
-            const response = await fetch('/api/getConfig');
-            if (!response.ok) throw new Error("API Error");
-            const config = await response.json();
-            
-            if (config.apiKey) {
-                firebase.initializeApp(config);
-                window.db = firebase.firestore();
-                window.auth = firebase.auth();
-                fetchRankings();
-                setupAuthUI();
-            }
-        } catch (error) {
-            console.error("Firebase 초기화 실패:", error);
-            document.getElementById('rankingList').innerHTML = '<li style="text-align:center; color:var(--error);">데이터베이스 연결에 실패했습니다.</li>';
+    // 1. Listen for global Auth State to trigger data fetch
+    let rankingsFetched = false;
+    window.addEventListener('authStateChanged', () => {
+        if (window.db && !rankingsFetched) {
+            fetchRankings();
+            rankingsFetched = true;
         }
-    }
+    });
 
     // 2. Fetch and Aggregate Top Searches
     async function fetchRankings() {
@@ -100,31 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. Simple Auth UI Setup for Header
-    function setupAuthUI() {
-        const authWrapper = document.getElementById('authWrapper');
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                authWrapper.innerHTML = `
-                    <div class="user-profile" style="position:relative; display:flex; align-items:center; gap:0.5rem; cursor:pointer;" onclick="var menu = document.getElementById('logoutMenu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none';">
-                        <img src="${user.photoURL || 'https://placehold.co/150x150?text=Profile'}" alt="Profile" style="width:32px; height:32px; border-radius:50%;" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'V')}&background=random';">
-                        <span style="color:var(--text); font-weight:500;">${user.displayName}</span>
-                        <div id="logoutMenu" style="display:none; position:absolute; top:110%; right:0; background:var(--bg-surface); padding:0.5rem; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); border:1px solid var(--glass-border); min-width:140px; z-index:1000;">
-                            <button onclick="window.auth.signOut().then(()=>window.location.reload())" style="width:100%; text-align:left; padding:0.5rem; font-size:0.9rem; color:var(--accent-danger); border-radius:4px; display:inline-flex; align-items:center;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> 
-                                로그아웃
-                            </button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                authWrapper.innerHTML = `
-                    <button class="btn btn-primary" onclick="window.location.href='index.html'">로그인하러 가기</button>
-                `;
-            }
-            lucide.createIcons();
-        });
+    // Fallback if db is already initialized
+    if (window.db && !rankingsFetched) {
+        fetchRankings();
+        rankingsFetched = true;
     }
-
-    initFirebase();
 });

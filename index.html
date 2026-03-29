@@ -205,25 +205,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
+    <script src="auth.js"></script>
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
-        
-        // --- Firebase Auto-Init (Securely) ---
-        async function initFirebaseSecurely() {
-            try {
-                const response = await fetch('/api/getConfig');
-                if (!response.ok) return;
-                const firebaseConfig = await response.json();
-                if (firebaseConfig.apiKey) {
-                    firebase.initializeApp(firebaseConfig);
-                    window.db = firebase.firestore();
-                    window.auth = firebase.auth();
-                    window.dispatchEvent(new Event('firebaseReady'));
-                }
-            } catch (error) {}
-        }
-        initFirebaseSecurely();
     </script>
 
     <!-- Mobile Tab Bar (Visible only on max-width 768px via CSS, functionally hidden on desktop) -->
