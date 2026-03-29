@@ -39,25 +39,16 @@ export async function onRequest(context) {
     const clientId = env.NAVER_CLIENT_ID;
     const clientSecret = env.NAVER_CLIENT_SECRET;
 
-    // Cloudflare Pages 환경 변수 로드 확인 로그 추가
+    // Cloudflare Pages 환경 변수 로드 확인 로그 (내부 로그용)
     console.log(`[AUTH CHECK] clientId: ${clientId ? 'LOADED' : 'MISSING'}, clientSecret: ${clientSecret ? 'LOADED' : 'MISSING'}`);
 
-    if (!clientId) {
+    if (!clientId || !clientSecret) {
+      const missingVar = !clientId ? 'NAVER_CLIENT_ID' : 'NAVER_CLIENT_SECRET';
       return new Response(JSON.stringify({ 
         success: false,
-        error: "Naver Client ID is missing", 
-        details: "Cloudflare 환경 변수에 'NAVER_CLIENT_ID' 값을 찾을 수 없습니다. 대시보드의 Environment variables 설정을 확인하세요." 
-      }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" }
-      });
-    }
-
-    if (!clientSecret) {
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: "Naver Client Secret is missing", 
-        details: "Cloudflare 환경 변수에 'NAVER_CLIENT_SECRET' 값을 찾을 수 없습니다. 대시보드의 Environment variables 설정을 확인하세요." 
+        error: "환경 변수 로드 실패", 
+        details: `Cloudflare Dashbaord에 '${missingVar}'가 등록되지 않았거나 값이 없습니다. 
+        [Settings] -> [Environment variables]에서 변수 대소문자를 다시 확인하고 'Secret'으로 등록하신 후 반드시 'Redeploy' 해주세요.` 
       }), {
         status: 500,
         headers: { "Content-Type": "application/json" }

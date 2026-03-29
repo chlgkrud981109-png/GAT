@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(url);
             const data = await response.json();
 
-            if (data.items && data.items.length > 0) {
+            if (data.success && data.items && data.items.length > 0) {
                 // Calculate global average price for the search results to detect outliers
                 const prices = data.items.map(i => parseInt(i.lprice) || 0).filter(p => p > 0);
                 const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
@@ -67,12 +67,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const grouped = groupProducts(data.items, avgPrice);
                 dynamicProducts = grouped;
                 renderProducts(grouped);
+            } else if (data.error) {
+                // 서버에서 상세 에러 메시지를 보낸 경우 (환경 변수 누락 등)
+                productGrid.innerHTML = `
+                    <div class="empty-state">
+                        <i data-lucide="alert-circle" style="width:48px; height:48px; color:var(--accent-primary); margin-bottom:1rem;"></i>
+                        <h3 style="margin-bottom:0.5rem;">${data.error}</h3>
+                        <p style="color:var(--text-secondary); max-width:400px; margin:0 auto; line-height:1.6;">${data.details || '서버 응답 오류가 발생했습니다.'}</p>
+                    </div>
+                `;
+                lucide.createIcons();
             } else {
                 productGrid.innerHTML = '<p class="empty-state">검색 결과가 없습니다. 다른 키워드로 시도해 보세요.</p>';
             }
         } catch (error) {
             console.error('Search error:', error);
-            productGrid.innerHTML = '<p class="empty-state">데이터를 가져오는데 실패했습니다. 잠시 후 다시 시도해주세요.</p>';
+            productGrid.innerHTML = '<p class="empty-state">데이터를 서버와 통신하는 중 문제가 발생했습니다. (네트워크 확인 필요)</p>';
         }
     };
 

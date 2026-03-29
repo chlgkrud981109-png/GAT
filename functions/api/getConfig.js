@@ -18,13 +18,13 @@ export async function onRequest(context) {
     measurementId: cleanVar(env.FB_MEASUREMENT_ID)
   };
 
-  // 만약 환경 변수가 누락되었다면 에러 반환
+  // 만약 API Key가 누락되었다면 가이드와 함께 반환
   if (!firebaseConfig.apiKey) {
     return new Response(JSON.stringify({ 
       error: "FB_API_KEY is missing", 
-      details: "Firebase API 키가 Cloudflare 환경 변수(FB_API_KEY)에 등록되지 않았거나 빈 값입니다." 
+      details: "Firebase API 키가 Cloudflare 환경 변수(FB_API_KEY)에 등록되지 않았습니다. 대시보드에서 'Secret'으로 등록해 주세요." 
     }), {
-      status: 500,
+      status: 200, 
       headers: { "Content-Type": "application/json" }
     });
   }
