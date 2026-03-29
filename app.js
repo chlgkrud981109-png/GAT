@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryTags = document.querySelectorAll('.tag');
     const welcomeSection = document.getElementById('welcomeSection');
     const selectionArea = document.getElementById('selectionArea');
-    const resetBtn = document.getElementById('resetBtn');
+    // resetBtn removed
     const dynamicKeyword = document.getElementById('dynamicKeyword');
 
     // Modal elements
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="product-card-grid" onclick="window.selectProduct('${product.uid}')">
                     ${product.isPriceCaution ? `<div class="price-caution" style="position:absolute; top:0.5rem; right:0.5rem; z-index:2; background:rgba(255,107,107,0.9); color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem;">가격 주의</div>` : ''}
                     <div class="card-image-wrap">
-                        <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/200'">
+                      <img src="${product.image}" alt="${product.name}" onerror="this.onerror=null;this.src='https://placehold.co/200x200?text=No+Image';this.nextElementSibling?null:this.insertAdjacentHTML('afterend','<img src=\'https://ui-avatars.com/api/?name=V&background=random\' style=\'display:none;\' onerror=\'this.previousElementSibling.src=this.src\'>');">
                     </div>
                     <div class="card-body">
                         <div class="card-brand">${product.brand}</div>
@@ -203,10 +203,13 @@ document.addEventListener('DOMContentLoaded', () => {
         productGrid.innerHTML = html || '<p class="empty-state">검색 결과가 없습니다.</p>';
         
         // 애드센스 광고 단위 활성화 (각 슬롯마다 push 필요)
-        const adSlots = productGrid.querySelectorAll('.adsbygoogle');
-        adSlots.forEach(() => {
-            (adsbygoogle = window.adsbygoogle || []).push({});
-        });
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isLocal) {
+            const adSlots = productGrid.querySelectorAll('.adsbygoogle');
+            adSlots.forEach(() => {
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            });
+        }
 
         if (window.lucide) window.lucide.createIcons();
     };
@@ -236,9 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') performSearch();
     });
 
-    if(resetBtn) {
-        resetBtn.addEventListener('click', () => location.reload());
-    }
+    // resetBtn references and event listeners removed as requested. 
 
     // --- Core Interaction: One-Click Redirect ---
     window.selectProduct = async function(uid, isModal = false) {
@@ -257,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
             priceVal: product.priceVal || (parseInt(product.lprice) || 0),
             url: product.link,
             isPriceCaution: product.isPriceCaution || false,
-            specs: parseSpecs(product.rawName || product.name, product.brand)
+            specs: window.parseSpecs ? window.parseSpecs(product.rawName || product.name, product.brand, product.category) : {}
         };
 
         const currentMatchup = JSON.parse(localStorage.getItem('currentMatchup')) || { base: null, competitor: null };
@@ -279,8 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Enhanced Modal Close handling (button-based)
     if(closeSearchModal) {
-        closeSearchModal.addEventListener('click', () => {
+        closeSearchModal.addEventListener('click', (e) => {
+            e.stopPropagation();
             searchModal.classList.add('hidden');
         });
     }
@@ -315,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 modalSearchResults.innerHTML = window.modalProducts.map(p => `
                     <div class="modal-result-card" onclick="window.selectProduct('${p.uid}', true)" style="position:relative;">
                         ${p.isPriceCaution ? `<div class="price-caution" style="transform: scale(0.7); top: -5px; right: -5px;"><i data-lucide="alert-triangle" style="width:10px; height:10px;"></i> 가격 주의</div>` : ''}
-                        <img src="${p.image}" alt="${p.name}">
+                        <img src="${p.image}" alt="${p.name}" onerror="this.src='https://placehold.co/200x200?text=No+Image'">
                         <div class="info">
                             <div class="name">${p.name}</div>
                             <div class="price">${p.priceFormatted}</div>
@@ -358,15 +361,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === premiumModal) premiumModal.classList.add('hidden');
     });
 
-    function parseSpecs(name, brand) {
-        const specs = { '브랜드/제조사': brand, '쇼핑몰': '네이버 최저가' };
-        const lowerName = (name || "").toLowerCase();
-        const ramMatch = name.match(/(\d{1,2}GB?)\s*(ram|메모리)?/i);
-        if (ramMatch) specs['메모리 (RAM)'] = ramMatch[1].toUpperCase();
-        const storageMatch = name.match(/(\d{3}GB|1TB|2TB)/i);
-        if (storageMatch) specs['저장용량'] = storageMatch[1].toUpperCase();
-        if (lowerName.includes('5g')) specs['네트워크'] = '5G 지원';
+    // Move parseSpecs to window for cross-script compatibility if needed, 
+    // but compare.js has its own robust version. 
+    // Synchronizing with compare.js logic for initial load:
+    window.parseSpecs = function(title, brand, category) {
+        const specs = { '브랜드/제조사': { value: brand || '알 수 없음', isAi: false }, '쇼핑몰': { value: '네이버 최저가', isAi: false } };
+        
+        if(title.includes('아이폰 16')) {
+            specs['저장용량'] = { value: '128GB/256GB/512GB/1TB', isAi: true };
+            specs['메모리'] = { value: '8GB', isAi: true };
+            specs['프로세서'] = { value: 'A18 / A18 Pro', isAi: true };
+            specs['화면크기'] = { value: '6.1" / 6.7"', isAi: true };
+        } else if(title.includes('S24')) {
+            specs['저장용량'] = { value: '256GB/512GB/1TB', isAi: true };
+            specs['메모리'] = { value: '8GB/12GB', isAi: true };
+            specs['프로세서'] = { value: 'Exynos 2400 / SD 8 Gen 3', isAi: true };
+            specs['화면크기'] = { value: '6.2" / 6.7" / 6.8"', isAi: true };
+        }
+        
+        const ramMatch = title.match(/(\d{1,2}GB?)\s*(ram|메모리)?/i);
+        if (ramMatch) specs['메모리'] = { value: ramMatch[1].toUpperCase(), isAi: false };
+        const storageMatch = title.match(/(\d{3}GB|1TB|2TB)/i);
+        if (storageMatch) specs['저장용량'] = { value: storageMatch[1].toUpperCase(), isAi: false };
+        
         return specs;
+    };
+
+    function getBadgeHtml(product) {
+        if (product && product.isPriceCaution) {
+            return `<div class="price-caution"><i data-lucide="alert-triangle" style="width:14px; height:14px;"></i> 가격 주의</div>`;
+        }
+        // 기본 특징 배지 (인기상품, 최저가 등)
+        if (product && product.reviewCount > 500) {
+            return `<div class="price-caution" style="background:var(--accent-success);"><i data-lucide="award" style="width:14px; height:14px;"></i> 인기상품</div>`;
+        }
+        return '';
     }
 
     // --- Dynamic Hero Keyword Animation ---

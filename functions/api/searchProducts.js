@@ -185,15 +185,6 @@ export async function onRequest(context) {
       rating: (Math.random() * (5.0 - 3.5) + 3.5).toFixed(1)
     }));
 
-    function groupProducts(items, globalAvg) {
-        if (!items || items.length === 0) return []; // Early Return: 데이터가 없을 경우 빈 배열 반환
-        
-        const groups = {};
-        items.forEach(item => {
-            // grouping logic
-        });
-    }
-
     return new Response(JSON.stringify({
       success: true,
       items: cleanItems

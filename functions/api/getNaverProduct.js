@@ -13,6 +13,27 @@ export async function onRequest(context) {
     });
   }
 
+  // --- 로컬 개발용 Mock 데이터 ---
+  const clientId = env.NAVER_CLIENT_ID || "";
+  const isLocal = env.IS_LOCAL === 'true' || 
+                  env.IS_LOCAL === true || 
+                  !env.CF_PAGES || 
+                  clientId.includes('YOUR_NAVER');
+
+  if (isLocal) {
+    return new Response(JSON.stringify({
+      success: true,
+      priceVal: 1550000,
+      priceFormatted: '₩1,550,000',
+      productUrl: 'https://www.apple.com/kr/iphone-16-pro/',
+      productName: `Apple 아이폰 16 Pro 256GB (Mock - ${keyword})`,
+      productImage: 'https://shop-phinf.pstatic.net/20240913_243/1726202410123_S6SjK_PNG/Apple_iPhone_16_Pro_Natural_Titanium.png'
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
   // 검색어를 네이버 API URL에 안전하게 삽입
   const NAVER_API_URL = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword)}&display=1&sort=sim`;
 

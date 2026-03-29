@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (user) {
                 authWrapper.innerHTML = `
                     <div class="user-profile" style="position:relative; display:flex; align-items:center; gap:0.5rem; cursor:pointer;" onclick="var menu = document.getElementById('logoutMenu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none';">
-                        <img src="${user.photoURL || 'https://via.placeholder.com/150'}" alt="Profile" style="width:32px; height:32px; border-radius:50%;">
+                        <img src="${user.photoURL || 'https://placehold.co/150x150?text=Profile'}" alt="Profile" style="width:32px; height:32px; border-radius:50%;" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'V')}&background=random';">
                         <span style="color:var(--text); font-weight:500;">${user.displayName}</span>
                         <div id="logoutMenu" style="display:none; position:absolute; top:110%; right:0; background:var(--bg-surface); padding:0.5rem; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); border:1px solid var(--glass-border); min-width:140px; z-index:1000;">
                             <button onclick="window.auth.signOut().then(()=>window.location.reload())" style="width:100%; text-align:left; padding:0.5rem; font-size:0.9rem; color:var(--accent-danger); border-radius:4px; display:inline-flex; align-items:center;">

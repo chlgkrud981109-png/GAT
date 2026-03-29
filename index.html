@@ -121,9 +121,6 @@
         <section class="selection-area hidden" id="selectionArea">
             <div class="section-header">
                 <h2>비교할 제품 선택</h2>
-                <button class="btn btn-icon btn-outline reset-btn" id="resetBtn">
-                    <i data-lucide="rotate-ccw"></i> 다시 선택
-                </button>
             </div>
             
             <div class="product-grid" id="productGrid">
@@ -153,14 +150,16 @@
                 <i data-lucide="layers"></i>
                 <span>Versus</span>
             </div>
-            <p class="copyright">&copy; 2026 Versus. All rights reserved. Premium Product Comparison.</p>
+            <p class="copyright">&copy; 2026 Versus. All rights reserved. Premium Product Comparison. <span style="opacity: 0.5; margin-left: 10px;">v1.1.0</span></p>
         </div>
     </footer>
 
     <!-- Search Modal for Competitor Selection -->
     <div id="searchModal" class="modal-overlay hidden">
         <div class="modal-content search-modal-content">
-            <i data-lucide="x" class="modal-close" id="closeSearchModal"></i>
+            <button class="modal-close" id="closeSearchModal" aria-label="Close">
+                <i data-lucide="x"></i>
+            </button>
             <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
                 <i data-lucide="search" style="width: 20px;"></i> 비교할 상품 검색
             </h3>
@@ -182,7 +181,9 @@
     <!-- Premium Upgrade Modal -->
     <div id="premiumModal" class="modal-overlay hidden">
         <div class="modal-content">
-            <i data-lucide="x" class="modal-close" id="closePremiumModal"></i>
+            <button class="modal-close" id="closePremiumModal" aria-label="Close">
+                <i data-lucide="x"></i>
+            </button>
             <div class="premium-badge">PREMIUM FEATURE</div>
             <i data-lucide="crown" class="main-icon"></i>
             <h2 style="margin-bottom: 1rem;">3개 이상 비교는 <br>프리미엄 전용입니다</h2>
