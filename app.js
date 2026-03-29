@@ -166,29 +166,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const renderProducts = (products) => {
-        productGrid.innerHTML = products.map(product => `
-            <div class="product-card-list" onclick="window.selectProduct('${product.uid}')">
-                ${product.isPriceCaution ? `<div class="price-caution" style="position:absolute; top:1rem; right:1rem;"><i data-lucide="alert-triangle" style="width:12px; height:12px;"></i> 가격 주의</div>` : ''}
-                <div class="product-image-wrap">
-                    <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/100'">
-                </div>
-                <div class="product-info" style="flex:1; padding-right: 2rem;">
-                    <div class="product-brand">${product.brand}</div>
-                    <h3 class="product-name" style="margin-bottom:0.25rem;">${product.name}</h3>
-                    <div class="product-price" style="font-size:1.2rem;">${product.priceFormatted} <span style="font-size:0.8rem; color:var(--text-secondary); font-weight:normal;">최저가</span></div>
-                    
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; font-size:0.85rem; color:var(--text-secondary);">
-                        <div style="display:flex; align-items:center; gap:0.25rem;">
-                            <i data-lucide="star" style="width:14px; height:14px; color:gold; fill:gold;"></i>
-                            <span>${product.rating}</span>
-                            <span>(${product.reviewCount})</span>
-                        </div>
-                        ${product.allSellers ? `<div class="seller-badge">묶음 ${product.allSellers.length}개 판매처</div>` : ''}
+        let html = "";
+        
+        products.forEach((product, index) => {
+            // 상품 카드 렌더링 (Grid 스타일)
+            html += `
+                <div class="product-card-grid" onclick="window.selectProduct('${product.uid}')">
+                    ${product.isPriceCaution ? `<div class="price-caution" style="position:absolute; top:0.5rem; right:0.5rem; z-index:2; background:rgba(255,107,107,0.9); color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem;">가격 주의</div>` : ''}
+                    <div class="card-image-wrap">
+                        <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/200'">
+                    </div>
+                    <div class="card-body">
+                        <div class="card-brand">${product.brand}</div>
+                        <h3 class="card-title">${product.name}</h3>
+                        <div class="card-price">${product.priceFormatted}</div>
+                        <div class="card-mall">${product.allSellers ? product.allSellers[0].mallName : '쇼핑몰 정보 없음'}</div>
                     </div>
                 </div>
-            </div>
-        `).join('');
-        lucide.createIcons();
+            `;
+            
+            // 매 5번째 항목마다 실제 구글 애드센스 네이티브 광고 카드 삽입
+            if ((index + 1) % 5 === 0) {
+                html += `
+                    <div class="ad-card-native">
+                        <ins class="adsbygoogle"
+                             style="display:block; text-align:center;"
+                             data-ad-layout="in-article"
+                             data-ad-format="fluid"
+                             data-ad-client="ca-pub-2682811481522162"
+                             data-ad-slot="1234567890"></ins>
+                    </div>
+                `;
+            }
+        });
+
+        productGrid.innerHTML = html || '<p class="empty-state">검색 결과가 없습니다.</p>';
+        
+        // 애드센스 광고 단위 활성화 (각 슬롯마다 push 필요)
+        const adSlots = productGrid.querySelectorAll('.adsbygoogle');
+        adSlots.forEach(() => {
+            (adsbygoogle = window.adsbygoogle || []).push({});
+        });
+
+        if (window.lucide) window.lucide.createIcons();
     };
 
     // Category selection

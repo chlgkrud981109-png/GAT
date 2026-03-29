@@ -32,6 +32,94 @@ export async function onRequest(context) {
     });
   }
 
+  // --- 로컬 개발 전용 Mock 데이터 (API 호출 없이 즉시 반환) ---
+  // 로컬 여부 판단: IS_LOCAL 플래그, CF_PAGES 부재, 또는 네이버 키가 플레이스홀더인 경우
+  const clientId = env.NAVER_CLIENT_ID || "";
+  const isLocal = env.IS_LOCAL === 'true' || 
+                  env.IS_LOCAL === true || 
+                  !env.CF_PAGES || 
+                  clientId.includes('YOUR_NAVER') || 
+                  clientId.includes('실제');
+  
+  if (isLocal) {
+    console.log(`[LOCAL DEV] Mock 데이터를 반환합니다. (검색어: ${queryKeyword})`);
+    
+    const MOCK_ITEMS = [
+      {
+        id: "mock_16_pro",
+        name: `Apple 아이폰 16 Pro 256GB [실제 데이터 아님]`,
+        brand: "Apple",
+        maker: "Apple",
+        mallName: "애플 공식 홈페이지",
+        image: "https://shop-phinf.pstatic.net/20240913_243/1726202410123_S6SjK_PNG/Apple_iPhone_16_Pro_Natural_Titanium.png",
+        lprice: 1550000,
+        hprice: null,
+        priceFormatted: "₩1,550,000",
+        link: "https://www.apple.com/kr/iphone-16-pro/",
+        category: "디지털/가전 > 휴대폰 > 스마트폰",
+        productType: "1",
+        reviewCount: 482,
+        rating: "4.9"
+      },
+      {
+        id: "mock_s24_ultra",
+        name: `Samsung 갤럭시 S24 Ultra 512GB [실제 데이터 아님]`,
+        brand: "삼성전자",
+        maker: "삼성전자",
+        mallName: "삼성닷컴",
+        image: "https://shop-phinf.pstatic.net/20240118_143/1705500123456_ABCDE_PNG/Samsung_Galaxy_S24_Ultra.png",
+        lprice: 1690000,
+        hprice: null,
+        priceFormatted: "₩1,690,000",
+        link: "https://www.samsung.com/sec/smartphones/galaxy-s24-ultra/",
+        category: "디지털/가전 > 휴대폰 > 스마트폰",
+        productType: "1",
+        reviewCount: 924,
+        rating: "4.8"
+      },
+      {
+        id: "mock_macbook_m3",
+        name: `Apple 2024 맥북 에어 13 M3 8G 256G [실제 데이터 아님]`,
+        brand: "Apple",
+        maker: "Apple",
+        mallName: "네이버 스토어",
+        image: "https://shop-phinf.pstatic.net/20240305_243/1709600123456_FGHIJ_PNG/MacBook_Air_M3.png",
+        lprice: 1390000,
+        hprice: null,
+        priceFormatted: "₩1,390,000",
+        link: "https://search.shopping.naver.com/catalog/46369062618",
+        category: "디지털/가전 > 노트북 > 애플",
+        productType: "1",
+        reviewCount: 215,
+        rating: "4.7"
+      },
+      {
+        id: "mock_airpods_pro2",
+        name: `Apple 에어팟 프로 2세대 (USB-C) [실제 데이터 아님]`,
+        brand: "Apple",
+        maker: "Apple",
+        mallName: "쿠팡",
+        image: "https://shop-phinf.pstatic.net/20230913_143/1694500123456_KLMNO_PNG/AirPods_Pro_2nd_Gen.png",
+        lprice: 2980000,
+        hprice: null,
+        priceFormatted: "₩298,000",
+        link: "https://search.shopping.naver.com/catalog/42557551618",
+        category: "디지털/가전 > 음향기기 > 이어폰",
+        productType: "1",
+        reviewCount: 3500,
+        rating: "5.0"
+      }
+    ];
+
+    return new Response(JSON.stringify({
+      success: true,
+      items: MOCK_ITEMS
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
   // 검색어를 네이버 API URL에 삽입 (display 파라미터 동적 적용)
   const NAVER_API_URL = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(queryKeyword)}&display=${display}&sort=sim`;
 
