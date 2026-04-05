@@ -30,9 +30,10 @@
                 <span>Versus</span>
             </a>
             <nav class="nav-links">
-                <a href="index.html"><i data-lucide="trending-down"></i> 가격 추적</a>
-                <a href="bucket.html"><i data-lucide="swords"></i> 마이 배틀</a>
-                <a href="community.html"><i data-lucide="calendar"></i> 쇼핑 캘린더</a>
+                <a href="index.html" class="active">제품 비교</a>
+                <a href="bucket.html">비교 보관함</a>
+                <a href="guide.html">AI 쇼핑 가이드</a>
+                <a href="community.html">커뮤니티</a>
             </nav>
             <div class="auth-wrapper" id="authWrapper" style="margin-left: auto; margin-right: 1rem;">
                 <button class="btn btn-primary" id="googleLoginBtn">
@@ -48,44 +49,73 @@
 
     <!-- Main Content -->
     <main class="container">
-        <!-- Bento Grid Layout -->
-        <div class="bento-grid" style="margin-top: 2rem;">
-            <!-- Hero / Search Section (Full Width Card) -->
-            <section class="bento-card highlight col-span-12 hero" style="text-align: center; padding: 4rem 2rem;">
-                <div class="badge glow-badge" style="margin: 0 auto 1.5rem;">
-                    <i data-lucide="zap"></i> 실시간 최저가 추적 중
-                </div>
-                <h1 class="hero-title" style="font-size: 3rem; line-height: 1.3;">단 한 번의 검색으로 <br><span class="text-gradient">완벽한 비교</span> 시작</h1>
-                <p class="hero-subtitle">수만 개의 데이터 분석을 AI가 실시간으로 분석합니다.</p>
+        <!-- Hero Section -->
+        <section class="hero-section" id="welcomeSection">
+            <h1 class="gradient-text" style="font-size:3rem; line-height:1.3;">Versus에서 <br><span id="dynamicKeyword" style="color:var(--accent-primary); transition:opacity 0.4s;">아이폰 16</span><br>찾고 계신가요?</h1>
+            <p class="subtitle">가장 많이 찾는 제품들을 한눈에 쉽게 비교해보세요.</p>
+            
+            <div class="search-container glass-panel">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="searchInput" placeholder="비교할 제품을 검색하세요." autocomplete="off">
+                <button class="btn btn-primary" id="searchBtn">검색</button>
                 
-                <div class="search-box glass-panel" style="max-width: 600px; margin: 0 auto 2rem;">
-                    <i data-lucide="search" class="search-icon"></i>
-                    <input type="text" id="searchInput" placeholder="비교하고 싶은 상품이나 모델명을 검색하세요 (예: 갤럭시 S24)" autocomplete="off">
+                <!-- Search Results Dropdown -->
+                <div class="search-results hidden" id="searchResults">
+                    <!-- Populated by JS -->
                 </div>
-                
-                <!-- Quick Category Filters inside Bento -->
-                <div class="filters" style="justify-content: center;">
-                    <button class="filter-btn active" data-category="all">#전체</button>
-                    <button class="filter-btn" data-category="smartphone">#스마트폰</button>
-                    <button class="filter-btn" data-category="laptop">#노트북</button>
-                    <button class="filter-btn" data-category="kitchen">#주방가전</button>
+            </div>
+            
+            <!-- V2 Category Cards -->
+            <div class="category-cards-container">
+                <div class="category-card" data-category="smartphone">
+                    <div class="card-icon-wrap"><i data-lucide="smartphone"></i></div>
+                    <h3>전자기기 / IT</h3>
+                    <p>스마트폰, 태블릿, 워치</p>
                 </div>
-            </section>
-
-            <!-- Dynamic Product Grid Section -->
-            <section class="bento-card col-span-12" style="background: transparent; border: none; box-shadow: none; padding: 0;">
-                <div class="product-grid" id="productGrid">
-                    <!-- Cards will be dynamically injected here using JavaScript -->
+                <div class="category-card" data-category="laptop">
+                    <div class="card-icon-wrap"><i data-lucide="laptop"></i></div>
+                    <h3>노트북 / PC</h3>
+                    <p>업무용, 게이밍, 조립PC</p>
                 </div>
-                <div class="loading-spinner hidden" id="loadingSpinner">
-                    <div class="spinner"></div>
+                <div class="category-card" data-category="audio">
+                    <div class="card-icon-wrap"><i data-lucide="headphones"></i></div>
+                    <h3>음향 가전</h3>
+                    <p>이어폰, 헤드폰, 스피커</p>
                 </div>
-                <div class="no-results hidden" id="noResults">
-                    <i data-lucide="search-x"></i>
-                    <p>검색 결과가 없습니다.</p>
+                <div class="category-card" data-category="kitchen">
+                    <div class="card-icon-wrap"><i data-lucide="coffee"></i></div>
+                    <h3>주방가전 ☕</h3>
+                    <p>커피머신, 에어프라이어</p>
                 </div>
-            </section>
-        </div>
+                <div class="category-card" data-category="home">
+                    <div class="card-icon-wrap"><i data-lucide="bot"></i></div>
+                    <h3>생활가전 🤖</h3>
+                    <p>로봇청소기, 건조기</p>
+                </div>
+                <div class="category-card" data-category="fashion">
+                    <div class="card-icon-wrap"><i data-lucide="shirt"></i></div>
+                    <h3>패션잡화 👟</h3>
+                    <p>스니커즈, 인기 의류</p>
+                </div>
+            </div>
+            
+            <!-- 실시간 인기 검색어 (Ranking) -->
+            <div class="trending-searches-container" style="margin-top: 2rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; align-items: center;">
+                 <span style="color: var(--text-secondary); font-size: 0.9rem; margin-right: 0.5rem;"><i data-lucide="trending-up" style="width:14px; height:14px; margin-right:4px;"></i>실시간 인기 검색:</span>
+                 <div id="mainTrendingSearches" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                     <span style="font-size:0.85rem; color:var(--text-secondary);"><i data-lucide="loader-2" class="spin" style="width:12px; height:12px;"></i> 집계중...</span>
+                 </div>
+            </div>
+            
+            <!-- Quick Tags (Hidden for cleaner large card UI, kept for fallback) -->
+            <div class="quick-tags hidden">
+                <button class="tag active" data-category="all">전체</button>
+                <button class="tag" data-category="smartphone">스마트폰</button>
+                <button class="tag" data-category="laptop">노트북</button>
+                <button class="tag" data-category="audio">무선이어폰</button>
+                <button class="tag" data-category="tablet">태블릿</button>
+            </div>
+        </section>
 
         <!-- Product Selection Area -->
         <section class="selection-area hidden" id="selectionArea">
