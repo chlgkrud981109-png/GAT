@@ -442,14 +442,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (context.wins.base.length === 0 && context.wins.comp.length === 0) specWinText += ` 브랜드 선호도나 AS 등 추가적인 요소를 기준으로 선택하는 것을 추천합니다.`;
                 
                 return `
-                <article class="ai-summary-article">
-                    <h3><i data-lucide="sparkles" style="width:20px;"></i> AI 통합 분석: ${baseName} VS ${compName}</h3>
-                    <p>
-                        소비자들이 가장 많이 고민하는 <strong>${baseName.split(' ')[0]}</strong>과(와) <strong>${compName.split(' ')[0]}</strong> 모델의 데이터 기반 심층 비교 결과입니다. 
+                <article class="ai-summary-article bento-card col-span-12" style="padding: 2.5rem; margin-top: 2rem; border-top: 5px solid var(--accent-primary);">
+                    <h3 style="font-size: 1.4rem; margin-bottom:1rem; color:var(--text-primary);"><i data-lucide="sparkles" style="width:24px; color:var(--accent-primary);"></i> AI 통합 쇼핑 가이드: ${baseName} VS ${compName}</h3>
+                    <p style="font-size: 1.05rem; line-height:1.8;">
+                        수만 건의 데이터를 분석한 <strong>${baseName.split(' ')[0]}</strong>과(와) <strong>${compName.split(' ')[0]}</strong> 모델의 비교 결과입니다. 
                         <br><br>
                         ${priceText} ${specWinText}
                         <br><br>
-                        자신의 실사용 목적(예: 휴대성, 작업 환경, 예산)에 맞춰 두 기기 중 객관적으로 더 적합한 모델을 스마트하게 선택하시기 바랍니다.
+                        자신의 실사용 목적(예: 휴대성, 작업 환경, 예산)에 맞춰 가장 적합한 라이프스타일을 선택하시기 바랍니다.
                     </p>
                 </article>`;
             }
