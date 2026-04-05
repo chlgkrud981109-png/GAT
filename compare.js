@@ -11,13 +11,104 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalSearchResults = document.getElementById('modalSearchResults');
     const closeSearchModal = document.getElementById('closeSearchModal');
 
-    // Load data from localStorage
-    // State Management for Dirty Check
-    let matchup = JSON.parse(localStorage.getItem('currentMatchup')) || { base: null, competitor: null };
-    const originalPresetId = localStorage.getItem('loadedPresetId'); // 원본 프리셋 ID (보관함에서 왔을 경우)
-    const initialMatchupStr = JSON.stringify(matchup);
+    // Load data from URL or localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const baseParam = urlParams.get('base');
+    const compParam = urlParams.get('comp');
+
+    let matchup = { base: null, competitor: null };
     let isSavePerformed = false;
     let pendingUrl = null;
+
+    async function fetchProductData(keyword) {
+        try {
+            const res = await fetch(`/api/searchProducts?keyword=${encodeURIComponent(keyword)}&display=1`);
+            const data = await res.json();
+            if (data.items && data.items.length > 0) {
+                const item = data.items[0];
+                const lprice = parseInt(item.lprice) || 0;
+                return {
+                    id: item.productId || Math.random().toString(),
+                    name: (item.title || "").replace(/<b>/g, '').replace(/<\/b>/g, ''),
+                    rawName: (item.title || "").replace(/<b>/g, '').replace(/<\/b>/g, ''),
+                    brand: item.brand || item.mallName || '',
+                    category: item.category || '',
+                    image: item.image,
+                    price: lprice.toLocaleString() + '원',
+                    priceVal: lprice,
+                    url: item.link,
+                    isPriceCaution: false,
+                    specs: parseSpecs(item.title, item.brand, item.category)
+                };
+            }
+        } catch (e) {
+            console.error("Failed to fetch product:", keyword, e);
+        }
+        return null;
+    }
+
+    async function initializeMatchup() {
+        if (baseParam || compParam) {
+            // Skeleton mode ON
+            document.getElementById('comparisonView').innerHTML = `
+                <div style="padding: 2rem; display:flex; gap:1rem;">
+                   <div class="skeleton" style="flex:1; height:400px; border-radius:12px;"></div>
+                   <div class="skeleton" style="flex:1; height:400px; border-radius:12px;"></div>
+                </div>
+            `;
+            
+            if (baseParam) matchup.base = await fetchProductData(baseParam);
+            if (compParam) matchup.competitor = await fetchProductData(compParam);
+            
+            // Re-fetch DOM elements if overwritten
+            document.getElementById('comparisonView').innerHTML = `
+            <div class="save-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <button class="btn btn-outline" onclick="window.location.href='index.html'">
+                    <i data-lucide="arrow-left"></i> 뒤로가기
+                </button>
+                <div style="display:flex; gap:0.5rem;">
+                    <button class="btn btn-outline" id="copyLinkBtn">
+                        <i data-lucide="link"></i> 링크 복사
+                    </button>
+                    <button class="btn btn-shiny" id="saveComparisonBtn">
+                        <i data-lucide="bookmark"></i> 현재 비교 저장하기
+                    </button>
+                </div>
+            </div>
+            <div class="comparison-container glass-panel">
+                <div class="compare-header" id="compareHeader">
+                    <div class="compare-card" id="baseProductCard"></div>
+                    <div class="vs-badge">VS</div>
+                    <div class="compare-card" id="competitorSlot"></div>
+                </div>
+                <div class="specs-table-container">
+                    <table class="specs-table" id="specsTable"></table>
+                </div>
+                <div id="aiSummarySection"></div>
+            </div>`;
+            
+            lucide.createIcons();
+            
+            // Re-bind listeners for new DOM
+            document.getElementById('saveComparisonBtn').addEventListener('click', () => {
+                saveCurrentMatchup(() => showToast('보관함에 저장되었습니다!'));
+            });
+            document.getElementById('copyLinkBtn').addEventListener('click', () => {
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                    showToast('링크가 복사되었습니다!');
+                });
+            });
+
+            renderComparison();
+        } else {
+            matchup = JSON.parse(localStorage.getItem('currentMatchup')) || { base: null, competitor: null };
+            renderComparison();
+        }
+    }
+
+    const originalPresetId = localStorage.getItem('loadedPresetId'); // 원본 프리셋 ID (보관함에서 왔을 경우)
+    let initialMatchupStr = JSON.stringify(matchup);
+
 
     // Exit Modal Elements
     const exitModal = document.getElementById('exitConfirmModal');
@@ -215,33 +306,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Render Base
         const baseTitle = base.name || (base.rawName || base.title || "").replace(/<b>/g, '').replace(/<\/b>/g, '');
-        baseProductCard.innerHTML = `
-            <div style="position:relative; width:100%;">
-                ${getBadgeHtml(base)}
-                <img src="${base.image}" alt="${baseTitle}" class="compare-img" onerror="${onImgError}">
-                <div class="compare-brand">${base.brand || '알 수 없음'}</div>
-                <div class="compare-title">${baseTitle}</div>
-                <div class="compare-price">${base.price || '정보 없음'}</div>
-                <div style="display:flex; gap:0.5rem; justify-content:center; width:100%;">
-                    <button class="btn btn-primary" style="flex:1; padding:0.8rem 1rem;" onclick="window.open('${base.url}', '_blank')">최저가 방문</button>
-                    <div style="width:45px; display:none;"></div>
+        const baseCardWrapper = document.getElementById('baseProductCard');
+        if(baseCardWrapper) {
+            baseCardWrapper.innerHTML = `
+                <div style="position:relative; width:100%;">
+                    ${getBadgeHtml(base)}
+                    <img src="${base.image}" alt="${baseTitle}" class="compare-img" onerror="${onImgError}">
+                    <div class="compare-brand">${base.brand || '알 수 없음'}</div>
+                    <div class="compare-title">${baseTitle}</div>
+                    <div class="compare-price">${base.price || '정보 없음'}</div>
+                    <div style="display:flex; gap:0.5rem; justify-content:center; width:100%;">
+                        <button class="btn btn-primary" style="flex:1; padding:0.8rem 1rem;" onclick="window.open('${base.url}', '_blank')">최저가 방문</button>
+                        <div style="width:45px; display:none;"></div>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
 
         // Render Competitor (or Empty State)
+        const compSlotWrapper = document.getElementById('competitorSlot');
+        const specsTableWrapper = document.getElementById('specsTable');
+
         if (!competitor) {
-            competitorSlot.innerHTML = `
+            if(compSlotWrapper) compSlotWrapper.innerHTML = `
                 <div class="empty-slot" onclick="window.openSearchModal()">
                     <i data-lucide="plus-circle" style="width:40px; height:40px; margin-bottom:1rem; color:var(--accent-primary);"></i>
                     <span style="font-weight:600; color:var(--text-secondary);">비교할 상품을 추가하세요</span>
                     <button class="btn btn-outline" style="margin-top:1rem; pointer-events:none;">상품 추가</button>
                 </div>
             `;
-            specsTable.innerHTML = `<tbody><tr class="category-row"><th colspan="3">제품 상세 비교표</th></tr><tr><td colspan="3" style="text-align:center; padding:3rem; color:var(--text-secondary);">비교할 두 번째 제품을 추가하면<br>상세 명세 분석표가 나타납니다.</td></tr></tbody>`;
+            if(specsTableWrapper) specsTableWrapper.innerHTML = `<tbody><tr class="category-row"><th colspan="3">제품 상세 비교표</th></tr><tr><td colspan="3" style="text-align:center; padding:3rem; color:var(--text-secondary);">비교할 두 번째 제품을 추가하면<br>상세 명세 분석표가 나타납니다.</td></tr></tbody>`;
         } else {
             const compTitle = competitor.name || (competitor.rawName || competitor.title || "").replace(/<b>/g, '').replace(/<\/b>/g, '');
-            competitorSlot.innerHTML = `
+            if(compSlotWrapper) compSlotWrapper.innerHTML = `
                 <div style="position:relative; width:100%;">
                     ${getBadgeHtml(competitor)}
                     <img src="${competitor.image}" alt="${compTitle}" class="compare-img" onerror="${onImgError}">
@@ -263,6 +360,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let tableHTML = `<tbody><tr class="category-row"><th colspan="3">AI 제품 상세 비교표</th></tr>`;
 
+            // Data for Rule-based summary
+            const summaryContext = { basePrice: base.priceVal, compPrice: competitor.priceVal, wins: { base: [], comp: [] } };
+
             config.keys.forEach((key, idx) => {
                 const label = config.labels[idx];
 
@@ -276,15 +376,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const bSpec = getValObj(base, key);
                 const cSpec = getValObj(competitor, key);
+                
+                // Visualization Progress Bar Logic
+                let bBar = '', cBar = '';
+                const parseNum = (str) => {
+                    const match = String(str).match(/[\d,.]+/);
+                    return match ? parseFloat(match[0].replace(/,/g, '')) : 0;
+                };
+                
+                const numKeyPatterns = ['저장용량', '화면크기', '메모리', '용량', '배터리', '주사율'];
+                if (numKeyPatterns.includes(key)) {
+                    const bNum = parseNum(bSpec.value);
+                    const cNum = parseNum(cSpec.value);
+                    if (bNum > 0 || cNum > 0) {
+                        const mx = Math.max(bNum, cNum) || 1;
+                        let bPct = (bNum / mx) * 100;
+                        let cPct = (cNum / mx) * 100;
+                        if(bNum > cNum) summaryContext.wins.base.push(key);
+                        else if(cNum > bNum) summaryContext.wins.comp.push(key);
+                        
+                        bBar = `<div class="spec-bar-wrapper"><div class="spec-bar-fill" style="width:${bPct}%"></div></div>`;
+                        cBar = `<div class="spec-bar-wrapper"><div class="spec-bar-fill comp" style="width:${cPct}%"></div></div>`;
+                    }
+                }
 
                 tableHTML += `
                     <tr>
                         <td class="spec-label" style="width:20%;">${label}</td>
                         <td class="spec-value ${bSpec.isAi ? 'spec-value-ai' : ''}" style="width:40%; text-align:center;">
                             ${bSpec.value || '-'} ${bSpec.isAi ? '<i class="ai-sparkle">✨</i>' : ''}
+                            ${bBar}
                         </td>
                         <td class="spec-value ${cSpec.isAi ? 'spec-value-ai' : ''}" style="width:40%; text-align:center;">
                             ${cSpec.value || '-'} ${cSpec.isAi ? '<i class="ai-sparkle">✨</i>' : ''}
+                            ${cBar}
                         </td>
                     </tr>
                 `;
@@ -294,24 +419,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tr class="category-row"><th colspan="3">AI 특징 분석</th></tr>
                 <tr>
                     <td class="spec-label">추천 포인트</td>
-                    <td class="spec-value" style="font-size:0.9rem;">✅ ${base.brand}의 강점<br>✅ 검증된 스테디셀러</td>
-                    <td class="spec-value" style="font-size:0.9rem;">✅ ${competitor.brand}의 대안<br>✅ 뛰어난 가성비</td>
+                    <td class="spec-value" style="font-size:0.9rem;">✅ ${base.brand}의 강점<br>✅ 검증된 인기상품</td>
+                    <td class="spec-value" style="font-size:0.9rem;">✅ ${competitor.brand}의 대안<br>✅ 뛰어난 경쟁력</td>
                 </tr>
             </tbody>`;
+
+            const specsTableWrapper = document.getElementById('specsTable');
+            if(specsTableWrapper) specsTableWrapper.innerHTML = tableHTML;
+            
+            // Generate zero-cost Rule-based Text
+            function generateAISummary(baseName, compName, context) {
+                const diff = context.compPrice - context.basePrice;
+                const absDiff = Math.abs(diff).toLocaleString();
+                let priceText = '';
+                if(diff > 0) priceText = `가격 측면에서는 <strong>${baseName}</strong> 제품이 ${compName} 대비 약 <strong>${absDiff}원 저렴</strong>하여 가성비가 뛰어납니다.`;
+                else if(diff < 0) priceText = `현재 최저가를 기준으로 <strong>${compName}</strong> 제품이 ${baseName}보다 <strong>${absDiff}원 더 저렴</strong>한 이점을 제공합니다.`;
+                else priceText = `두 제품의 최저 가격대가 비슷하게 형성되어 있어, 성능 측면의 비교가 더욱 중요합니다.`;
+                
+                let specWinText = '';
+                if(context.wins.base.length > 0) specWinText += ` <strong>${baseName}</strong>은(는) ${context.wins.base.map(k=>`'${k}'`).join(', ')} 등의 사양에서 수치적으로 우위에 있습니다.`;
+                if(context.wins.comp.length > 0) specWinText += ` 반면 <strong>${compName}</strong>은(는) ${context.wins.comp.map(k=>`'${k}'`).join(', ')} 측면에서 더 높은 스펙을 보여주어 사용자 경험을 향상시킬 수 있습니다.`;
+                else if (context.wins.base.length === 0 && context.wins.comp.length === 0) specWinText += ` 브랜드 선호도나 AS 등 추가적인 요소를 기준으로 선택하는 것을 추천합니다.`;
+                
+                return `
+                <article class="ai-summary-article">
+                    <h3><i data-lucide="sparkles" style="width:20px;"></i> AI 통합 분석: ${baseName} VS ${compName}</h3>
+                    <p>
+                        소비자들이 가장 많이 고민하는 <strong>${baseName.split(' ')[0]}</strong>과(와) <strong>${compName.split(' ')[0]}</strong> 모델의 데이터 기반 심층 비교 결과입니다. 
+                        <br><br>
+                        ${priceText} ${specWinText}
+                        <br><br>
+                        자신의 실사용 목적(예: 휴대성, 작업 환경, 예산)에 맞춰 두 기기 중 객관적으로 더 적합한 모델을 스마트하게 선택하시기 바랍니다.
+                    </p>
+                </article>`;
+            }
+
+            const aiSection = document.getElementById('aiSummarySection');
+            if(aiSection) {
+                aiSection.innerHTML = generateAISummary(baseTitle, compTitle, summaryContext);
+            }
 
             // AI Notice Bar (Remove existing one first to prevent duplicates)
             const existingNotice = document.querySelector('.ai-notice-bar');
             if (existingNotice) existingNotice.remove();
 
             const noticeHTML = `
-                <div class="ai-notice-bar">
+                <div class="ai-notice-bar" style="margin-top:1rem;">
                     <i data-lucide="info" style="width:14px; height:14px; flex-shrink:0;"></i>
-                    <span>해당 정보는 공식 정보 부재 시 AI가 다양한 데이터를 종합 분석한 결과이며, 실제 사양과 다를 수 있으니 참고용으로 활용 부탁드립니다.</span>
+                    <span>해당 정보는 공식 정보 부재 시 데이터를 종합 분석한 결과이며, 실제 사양과 다를 수 있습니다.</span>
                 </div>
             `;
-
-            specsTable.innerHTML = tableHTML;
-            specsTable.insertAdjacentHTML('afterend', noticeHTML);
+            if(specsTableWrapper) specsTableWrapper.insertAdjacentHTML('afterend', noticeHTML);
         }
 
         lucide.createIcons();
@@ -449,14 +607,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showToast(msg) {
-        toast.innerText = msg;
-        toast.classList.remove('hidden');
-        toast.classList.add('visible');
-        setTimeout(() => {
-            toast.classList.remove('visible');
-            setTimeout(() => toast.classList.add('hidden'), 300);
-        }, 3000);
+        if(toast) {
+            toast.innerText = msg;
+            toast.classList.remove('hidden');
+            toast.classList.add('visible');
+            setTimeout(() => {
+                toast.classList.remove('visible');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
     }
 
-    renderComparison();
+    // Initialization branch: Start by checking URL
+    initializeMatchup();
 });

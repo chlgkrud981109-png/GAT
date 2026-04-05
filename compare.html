@@ -45,9 +45,14 @@
                 <button class="btn btn-outline" onclick="window.location.href='index.html'">
                     <i data-lucide="arrow-left"></i> 뒤로가기
                 </button>
-                <button class="btn btn-shiny" id="saveComparisonBtn">
-                    <i data-lucide="bookmark"></i> 현재 비교 저장하기
-                </button>
+                <div style="display:flex; gap:0.5rem;">
+                    <button class="btn btn-outline" id="copyLinkBtn">
+                        <i data-lucide="link"></i> 링크 복사
+                    </button>
+                    <button class="btn btn-shiny" id="saveComparisonBtn">
+                        <i data-lucide="bookmark"></i> 현재 비교 저장하기
+                    </button>
+                </div>
             </div>
 
             <div class="comparison-container glass-panel">
@@ -60,8 +65,17 @@
                 <div class="specs-table-container">
                     <table class="specs-table" id="specsTable"></table>
                 </div>
+
+                <!-- AI Summary for SEO and Users -->
+                <div id="aiSummarySection"></div>
             </div>
         </section>
+
+        <!-- Mobile Floating CTA Bar -->
+        <div class="mobile-floating-cta">
+            <button class="btn btn-primary" onclick="window.open(matchup.base.url, '_blank')" style="background:var(--accent-primary);">A 구매하기</button>
+            <button class="btn btn-primary" onclick="window.open(matchup.competitor.url, '_blank')" style="background:var(--text-primary);">B 구매하기</button>
+        </div>
 
         <!-- Footer Ad Banner -->
         <div class="ad-footer-banner" style="margin-top: 2rem;">
@@ -124,6 +138,9 @@
             <div class="footer-logo">
                 <i data-lucide="layers"></i>
                 <span>Versus</span>
+            </div>
+            <div class="footer-links" style="margin: 1rem 0; font-size: 0.9rem; color: var(--text-secondary);">
+                <a href="about.html">About</a> | <a href="privacy.html">Privacy</a> | <a href="terms.html">Terms</a>
             </div>
             <p class="copyright">&copy; 2026 Versus. All rights reserved. <span style="opacity: 0.5; margin-left: 10px;">v1.1.0</span></p>
         </div>

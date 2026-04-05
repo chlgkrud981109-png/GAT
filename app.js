@@ -241,13 +241,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // resetBtn references and event listeners removed as requested. 
 
-    // --- Core Interaction: One-Click Redirect ---
+    // --- Core Interaction: 2-Step Selection ---
+    window.selectedCompareProducts = [];
+    
     window.selectProduct = async function(uid, isModal = false) {
         const targetList = isModal ? window.modalProducts : dynamicProducts;
         const product = (targetList || []).find(p => p.uid === uid);
         if(!product) return;
 
-        const baseProduct = {
+        const pData = {
             id: product.uid,
             name: product.name,
             rawName: product.rawName || product.name,
@@ -261,16 +263,68 @@ document.addEventListener('DOMContentLoaded', () => {
             specs: window.parseSpecs ? window.parseSpecs(product.rawName || product.name, product.brand, product.category) : {}
         };
 
-        const currentMatchup = JSON.parse(localStorage.getItem('currentMatchup')) || { base: null, competitor: null };
-        
-        // If we are selecting a competitor from a modal in compare.html, this part usually wouldn't be called from app.js,
-        // but for safety, we handle it.
-        const matchup = { base: baseProduct, competitor: null };
-        localStorage.setItem('currentMatchup', JSON.stringify(matchup));
-        
-        if (isModal && searchModal) searchModal.classList.add('hidden');
-        window.location.href = 'compare.html';
+        // If duplicate item selected, ignore or deselect
+        if (window.selectedCompareProducts.find(p => p.id === pData.id)) {
+             window.selectedCompareProducts = window.selectedCompareProducts.filter(p => p.id !== pData.id);
+        } else {
+            if (window.selectedCompareProducts.length >= 2) {
+                // Remove first to allow rolling selection
+                window.selectedCompareProducts.shift();
+            }
+            window.selectedCompareProducts.push(pData);
+        }
+
+        updateSelectionBar();
     };
+
+    function updateSelectionBar() {
+        const bar = document.getElementById('selectionBar');
+        const btn = document.getElementById('startCompareBtn');
+        const bItem = document.getElementById('selectedBase');
+        const cItem = document.getElementById('selectedComp');
+        
+        if (!bar) return;
+
+        if (window.selectedCompareProducts.length === 0) {
+            bar.classList.add('hidden');
+        } else {
+            bar.classList.remove('hidden');
+        }
+
+        const renderItem = (elem, pData, placeholder) => {
+            if (pData) {
+                elem.innerHTML = `<img src="${pData.image}" alt=""> <span>${pData.name}</span>`;
+            } else {
+                elem.innerHTML = `<span class="placeholder-text">${placeholder}</span>`;
+            }
+        };
+
+        renderItem(bItem, window.selectedCompareProducts[0], "1. 첫 번째 상품 선택");
+        renderItem(cItem, window.selectedCompareProducts[1], "2. 두 번째 상품 선택");
+
+        if (window.selectedCompareProducts.length === 2) {
+            btn.disabled = false;
+        } else {
+            btn.disabled = true;
+        }
+    }
+
+    const startCompareBtn = document.getElementById('startCompareBtn');
+    if (startCompareBtn) {
+        startCompareBtn.addEventListener('click', () => {
+            if (window.selectedCompareProducts.length === 2) {
+                const base = window.selectedCompareProducts[0];
+                const comp = window.selectedCompareProducts[1];
+                
+                // Clear localStorage currentMatchup just in case
+                localStorage.removeItem('currentMatchup');
+                
+                // Use rawName for exact search in compare.html
+                const baseUrl = `compare.html?base=${encodeURIComponent(base.rawName)}&comp=${encodeURIComponent(comp.rawName)}`;
+                window.location.href = baseUrl;
+            }
+        });
+    }
 
     // --- Modal Search Functions ---
     window.openSearchModal = () => {
